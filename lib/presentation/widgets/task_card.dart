@@ -43,7 +43,7 @@ class _TaskCardState extends State<TaskCard> {
   }
 
   Color _getStatusBgColor(String status) {
-    return _getStatusColor(status).withOpacity(0.1);
+    return _getStatusColor(status).withValues(alpha: 0.1);
   }
 
   @override
