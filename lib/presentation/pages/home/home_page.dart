@@ -1,13 +1,53 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'package:flutter/rendering.dart';
 import '../../widgets/attendance_section.dart';
 import '../../widgets/task_card.dart';
 import '../../widgets/create_task_dialog.dart';
 import '../login/login_page.dart';
 import '../profile/profile_page.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final ScrollController _scrollController = ScrollController();
+  bool _isButtonVisible = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_scrollListener);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.userScrollDirection ==
+        ScrollDirection.reverse) {
+      if (!_isButtonVisible) {
+        setState(() {
+          _isButtonVisible = true;
+        });
+      }
+    } else if (_scrollController.position.userScrollDirection ==
+        ScrollDirection.forward) {
+      if (_isButtonVisible) {
+        setState(() {
+          _isButtonVisible = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +127,7 @@ class HomePage extends StatelessWidget {
           Container(
             color: Colors.grey[100],
             child: SingleChildScrollView(
+              controller: _scrollController,
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -200,26 +241,25 @@ class HomePage extends StatelessWidget {
               ),
             ),
           ),
-          Positioned(
-            left: 20,
-            right: 20,
-            bottom: 20,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            left: 0,
+            right: 0,
+            bottom: _isButtonVisible ? 0 : -100,
+            child: ClipRect(
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Container(
-                  height: 60,
+                  padding: const EdgeInsets.symmetric(vertical: 20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0d4f9d).withValues(alpha: 0.85),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.0),
+                        Colors.grey.shade400.withOpacity(0.9),
+                      ],
+                    ),
                   ),
                   child: Material(
                     color: Colors.transparent,
@@ -233,7 +273,7 @@ class HomePage extends StatelessWidget {
                           Text(
                             'View full task',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: Colors.black,
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
@@ -241,7 +281,7 @@ class HomePage extends StatelessWidget {
                           SizedBox(width: 8),
                           Icon(
                             Icons.arrow_forward_rounded,
-                            color: Colors.white,
+                            color: Colors.black,
                             size: 20,
                           ),
                         ],
