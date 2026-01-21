@@ -1,0 +1,431 @@
+{
+    "info": {
+        "_postman_id": "e93f9b2a-1234-4567-8901-23456789abcd",
+        "name": "Employee Management Mock API",
+        "description": "Mock API for Employee Management System Flutter App",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Login",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"employee_id\": \"L3T2077\",\n    \"password\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "login"
+                            ]
+                        },
+                        "description": "Authenticate user and get token"
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "originalRequest": {
+                                "method": "POST",
+                                "header": [],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"employee_id\": \"L3T2077\",\n    \"password\": \"password123\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/login",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "login"
+                                    ]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Login successful\",\n    \"token\": \"mock_jwt_token_xyz123\",\n    \"user\": {\n        \"id\": \"L3T2077\",\n        \"name\": \"Kaniz Fatima\",\n        \"role\": \"Senior Executive\"\n    }\n}"
+                        },
+                        {
+                            "name": "Login Failed",
+                            "originalRequest": {
+                                "method": "POST",
+                                "header": [],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"employee_id\": \"wrong_user\",\n    \"password\": \"wrong_pass\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/login",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "login"
+                                    ]
+                                }
+                            },
+                            "status": "Unauthorized",
+                            "code": 401,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"Invalid employee ID or password\"\n}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "User",
+            "item": [
+                {
+                    "name": "Get Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/profile",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "profile"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Default Profile",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/profile",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "profile"
+                                    ]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": true,\n    \"data\": {\n        \"employee_id\": \"L3T2077\",\n        \"name\": \"Kaniz Fatima\",\n        \"designation\": \"Senior Executive\",\n        \"profile_image\": \"https://i.pravatar.cc/300\",\n        \"department\": \"Technology\",\n        \"location\": \"Office\",\n        \"personal_details\": {\n            \"joining_date\": \"01-Jan-2024\",\n            \"confirmation_date\": \"01-Feb-2024\",\n            \"service_length\": \"2 years 6 months\"\n        }\n    }\n}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Tasks",
+            "item": [
+                {
+                    "name": "Get Tasks",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/tasks",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "tasks"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Task List",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/tasks",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "tasks"
+                                    ]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": true,\n    \"data\": [\n        {\n            \"id\": 1,\n            \"day_name\": \"Saturday\",\n            \"date\": \"2024-01-20\",\n            \"time_slot\": \"09:39 AM - 11:00 AM\",\n            \"status\": \"Complete\",\n            \"description\": \"Meeting with the design team regarding the new dashboard layout.\"\n        },\n        {\n            \"id\": 2,\n            \"day_name\": \"Sunday\",\n            \"date\": \"2024-01-21\",\n            \"time_slot\": \"10:00 AM - 12:00 PM\",\n            \"status\": \"In Progress\",\n            \"description\": \"Working on the employee management system UI components.\"\n        },\n        {\n            \"id\": 3,\n            \"day_name\": \"Monday\",\n            \"date\": \"2024-01-22\",\n            \"time_slot\": \"02:00 PM - 04:00 PM\",\n            \"status\": \"Next\",\n            \"description\": \"Daily standup meeting and progress report submission.\"\n        }\n    ]\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Task",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"date\": \"2024-01-22\",\n    \"time_slot\": \"02:00 PM - 04:00 PM\",\n    \"status\": \"Next\",\n    \"description\": \"New task description\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/tasks",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "tasks"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Task Created",
+                            "originalRequest": {
+                                "method": "POST",
+                                "header": [],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"date\": \"2024-01-22\",\n    \"time_slot\": \"02:00 PM - 04:00 PM\",\n    \"status\": \"Next\",\n    \"description\": \"New task description\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/tasks",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "tasks"
+                                    ]
+                                }
+                            },
+                            "status": "Created",
+                            "code": 201,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Task created successfully\",\n    \"data\": {\n        \"id\": 101,\n        \"date\": \"2024-01-22\",\n        \"status\": \"Next\"\n    }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Update Task",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"Complete\",\n    \"description\": \"Updated description\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/tasks/1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "tasks",
+                                "1"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Task Updated",
+                            "originalRequest": {
+                                "method": "PUT",
+                                "header": [],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"status\": \"Complete\",\n    \"description\": \"Updated description\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/tasks/1",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "tasks",
+                                        "1"
+                                    ]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Task updated successfully\"\n}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Attendance",
+            "item": [
+                {
+                    "name": "Get Attendance",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/attendance?month=01&year=2024",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "attendance"
+                            ],
+                            "query": [
+                                {
+                                    "key": "month",
+                                    "value": "01"
+                                },
+                                {
+                                    "key": "year",
+                                    "value": "2024"
+                                }
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "January Attendance",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/attendance?month=01&year=2024",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "attendance"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "month",
+                                            "value": "01"
+                                        },
+                                        {
+                                            "key": "year",
+                                            "value": "2024"
+                                        }
+                                    ]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": true,\n    \"meta\": {\n        \"month\": \"January\",\n        \"year\": 2024,\n        \"total_present\": 22\n    },\n    \"data\": [\n        {\n            \"date\": \"01-01-24\",\n            \"day_name\": \"Saturday\",\n            \"in_time\": \"09:00 AM\",\n            \"out_time\": \"06:30 PM\",\n            \"status\": \"Present\",\n            \"work_type\": \"Field\"\n        },\n        {\n            \"date\": \"02-01-24\",\n            \"day_name\": \"Sunday\",\n            \"in_time\": \"-\",\n            \"out_time\": \"-\",\n            \"status\": \"Holiday\",\n            \"work_type\": \"-\"\n        },\n        {\n            \"date\": \"03-01-24\",\n            \"day_name\": \"Monday\",\n            \"in_time\": \"09:00 AM\",\n            \"out_time\": \"06:30 PM\",\n            \"status\": \"Present\",\n            \"work_type\": \"WFH\"\n        },\n        {\n            \"date\": \"04-01-24\",\n            \"day_name\": \"Tuesday\",\n            \"in_time\": \"10:00 AM\",\n            \"out_time\": \"04:00 PM\",\n            \"status\": \"Present\",\n            \"work_type\": \"Tour\"\n        }\n    ]\n}"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "https://your-mock-id.mock.pstmn.io",
+            "type": "string"
+        }
+    ]
+}
