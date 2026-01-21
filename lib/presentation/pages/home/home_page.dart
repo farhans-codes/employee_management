@@ -146,7 +146,7 @@ class _HomePageState extends State<HomePage> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               child: const Icon(
-                                Icons.checklist_rounded,
+                                Icons.fact_check,
                                 size: 30,
                                 color: Color(0xFF0d4f9d),
                               ),
@@ -189,7 +189,7 @@ class _HomePageState extends State<HomePage> {
 
                     // Task Cards
                     TaskCard(
-                      time: '10:30 - 12:00',
+                      time: '10:30 AM - 12:00 PM',
                       projectName: 'Project X Research',
                       initialStatus: 'Completed',
                       onEdit: () {
@@ -197,7 +197,7 @@ class _HomePageState extends State<HomePage> {
                           context: context,
                           builder: (context) => const CreateTaskDialog(
                             isEditing: true,
-                            initialTimeSlot: '10:30 - 12:00',
+                            initialTimeSlot: '10:30 AM - 12:00 PM',
                             initialStatus: 'Completed',
                             initialDescription: 'Project X Research',
                           ),
@@ -205,7 +205,7 @@ class _HomePageState extends State<HomePage> {
                       },
                     ),
                     TaskCard(
-                      time: '02:00 - 04:30',
+                      time: '02:00 PM - 04:30 PM',
                       projectName: 'Client Meeting Preparation',
                       initialStatus: 'Completed',
                       onEdit: () {
@@ -213,7 +213,7 @@ class _HomePageState extends State<HomePage> {
                           context: context,
                           builder: (context) => const CreateTaskDialog(
                             isEditing: true,
-                            initialTimeSlot: '02:00 - 04:30',
+                            initialTimeSlot: '02:00 PM - 04:30 PM',
                             initialStatus: 'Completed',
                             initialDescription: 'Client Meeting Preparation',
                           ),
@@ -221,7 +221,7 @@ class _HomePageState extends State<HomePage> {
                       },
                     ),
                     TaskCard(
-                      time: '04:30 - 06:00',
+                      time: '04:30 PM - 06:00 PM',
                       projectName: 'Daily Progress Report',
                       initialStatus: 'In Progress',
                       onEdit: () {
@@ -229,7 +229,7 @@ class _HomePageState extends State<HomePage> {
                           context: context,
                           builder: (context) => const CreateTaskDialog(
                             isEditing: true,
-                            initialTimeSlot: '04:30 - 06:00',
+                            initialTimeSlot: '04:30 PM - 06:00 PM',
                             initialStatus: 'In Progress',
                             initialDescription: 'Daily Progress Report',
                           ),
@@ -277,7 +277,7 @@ class _HomePageState extends State<HomePage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'View full task',
+                            'View Full Task',
                             style: TextStyle(
                               color: Colors.black,
                               fontSize: 16,

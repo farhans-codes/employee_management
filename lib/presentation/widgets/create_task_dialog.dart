@@ -28,13 +28,13 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
   late TextEditingController remarksController;
 
   final List<String> timeSlots = [
-    '09:00 - 10:30',
+    '09:00 AM - 10:30 AM',
     '09:39 AM - 11:00 AM', // Added to match the user sketch and mock data
-    '10:30 - 12:00',
-    '12:00 - 01:30',
-    '02:00 - 03:30',
-    '03:30 - 05:00',
-    '05:00 - 06:30',
+    '10:30 AM - 12:00 PM',
+    '12:00 PM - 01:30 PM',
+    '02:00 PM - 03:30 PM',
+    '03:30 PM - 05:00 PM',
+    '05:00 PM - 06:30 PM',
   ];
   final List<String> statuses = [
     'Completed',
@@ -85,7 +85,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.isEditing ? 'Edit task' : 'Create new task',
+              widget.isEditing ? 'Edit Task' : 'Create New Task',
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w800,
@@ -97,7 +97,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
             Row(
               children: [
                 Expanded(
-                  flex: 3,
+                  flex: 1,
                   child: _buildDropdown(
                     label: 'Time Slot*',
                     value: selectedTimeSlot,
@@ -108,7 +108,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  flex: 2,
+                  flex: 1,
                   child: _buildDropdown(
                     label: 'Status*',
                     value: selectedStatus,
@@ -159,7 +159,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
                     elevation: 0,
                   ),
                   child: const Text(
-                    'done',
+                    'Done',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -203,7 +203,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
               isExpanded: true,
               hint: Text(
                 hint,
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
               ),
               icon: const Icon(
                 Icons.keyboard_arrow_down_rounded,
@@ -217,7 +217,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 12, // Slightly reduced font size
+                      fontSize: 11, // Reduced font size to fit containers
                       fontWeight: FontWeight.w500,
                       color: Colors.black,
                     ),

@@ -192,7 +192,7 @@ class TaskListCard extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(4),
                 child: const Icon(
-                  Icons.edit_rounded,
+                  Icons.edit_outlined,
                   size: 22,
                   color: Color(0xFF0d4f9d),
                 ),

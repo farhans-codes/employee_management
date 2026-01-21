@@ -183,6 +183,7 @@ class _AttendancePageState extends State<AttendancePage> {
       flex: flex,
       child: Text(
         title,
+        textAlign: TextAlign.center,
         style: const TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w700,
@@ -211,6 +212,7 @@ class _AttendancePageState extends State<AttendancePage> {
             flex: 2,
             child: Text(
               date,
+              textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
@@ -222,6 +224,7 @@ class _AttendancePageState extends State<AttendancePage> {
             flex: 2,
             child: Text(
               day,
+              textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 13, color: Colors.black87),
             ),
           ),
@@ -229,6 +232,7 @@ class _AttendancePageState extends State<AttendancePage> {
             flex: 2,
             child: Text(
               inTime,
+              textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 13, color: Colors.black87),
             ),
           ),
@@ -236,6 +240,7 @@ class _AttendancePageState extends State<AttendancePage> {
             flex: 2,
             child: Text(
               outTime,
+              textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 13, color: Colors.black87),
             ),
           ),

@@ -23,7 +23,7 @@ class _AttendanceSectionState extends State<AttendanceSection> {
             Container(
               padding: const EdgeInsets.all(10),
               child: const Icon(
-                Icons.access_time_rounded,
+                Icons.watch_later,
                 size: 30,
                 color: Color(0xFF0d4f9d),
               ),
@@ -216,6 +216,7 @@ class _AttendanceSectionState extends State<AttendanceSection> {
       flex: flex,
       child: Text(
         title,
+        textAlign: TextAlign.center,
         style: const TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w700,
@@ -242,19 +243,35 @@ class _AttendanceSectionState extends State<AttendanceSection> {
         children: [
           Expanded(
             flex: 2,
-            child: Text(date, style: const TextStyle(fontSize: 13)),
+            child: Text(
+              date,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13),
+            ),
           ),
           Expanded(
             flex: 2,
-            child: Text(day, style: const TextStyle(fontSize: 13)),
+            child: Text(
+              day,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13),
+            ),
           ),
           Expanded(
             flex: 2,
-            child: Text(inTime, style: const TextStyle(fontSize: 13)),
+            child: Text(
+              inTime,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13),
+            ),
           ),
           Expanded(
             flex: 2,
-            child: Text(outTime, style: const TextStyle(fontSize: 13)),
+            child: Text(
+              outTime,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13),
+            ),
           ),
         ],
       ),

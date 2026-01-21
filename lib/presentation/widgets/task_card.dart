@@ -60,7 +60,7 @@ class _TaskCardState extends State<TaskCard> {
           Container(
             padding: const EdgeInsets.all(12),
             child: const Icon(
-              Icons.schedule_rounded,
+              Icons.assignment_outlined,
               color: Color(0xFF0d4f9d),
               size: 30,
             ),
@@ -101,34 +101,28 @@ class _TaskCardState extends State<TaskCard> {
               _buildPopupItem('Blocking'),
             ],
             child: Container(
-              width: 95, // Fixed width for consistent size
-              padding: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
               decoration: BoxDecoration(
                 color: _getStatusBgColor(currentStatus),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const SizedBox(
-                    width: 18,
-                  ), // Space equal to Icon (14) + padding (4)
-                  Expanded(
-                    child: Text(
-                      currentStatus,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: _getStatusColor(currentStatus),
-                      ),
+                  Text(
+                    currentStatus,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: _getStatusColor(currentStatus),
                     ),
                   ),
+                  const SizedBox(width: 4),
                   Icon(
                     Icons.arrow_drop_down,
                     color: _getStatusColor(currentStatus),
                     size: 14,
                   ),
-                  const SizedBox(width: 4), // Right padding for the arrow
                 ],
               ),
             ),
@@ -139,7 +133,7 @@ class _TaskCardState extends State<TaskCard> {
             child: Container(
               padding: const EdgeInsets.all(8),
               child: const Icon(
-                Icons.edit_rounded,
+                Icons.edit_outlined,
                 size: 20,
                 color: Color(0xFF0d4f9d),
               ),
