@@ -148,7 +148,15 @@ class HomePage extends StatelessWidget {
                   projectName: 'Project X Research',
                   initialStatus: 'Completed',
                   onEdit: () {
-                    // TODO: Implement edit
+                    showDialog(
+                      context: context,
+                      builder: (context) => const CreateTaskDialog(
+                        isEditing: true,
+                        initialTimeSlot: '10:30 - 12:00',
+                        initialStatus: 'Completed',
+                        initialDescription: 'Project X Research',
+                      ),
+                    );
                   },
                 ),
                 TaskCard(
@@ -156,7 +164,15 @@ class HomePage extends StatelessWidget {
                   projectName: 'Client Meeting Preparation',
                   initialStatus: 'Completed',
                   onEdit: () {
-                    // TODO: Implement edit
+                    showDialog(
+                      context: context,
+                      builder: (context) => const CreateTaskDialog(
+                        isEditing: true,
+                        initialTimeSlot: '02:00 - 04:30',
+                        initialStatus: 'Completed',
+                        initialDescription: 'Client Meeting Preparation',
+                      ),
+                    );
                   },
                 ),
               ],

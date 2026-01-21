@@ -148,7 +148,7 @@ class _AttendancePageState extends State<AttendancePage> {
                             _selectedDate.month,
                             day,
                           );
-                          final dayName = DateFormat('EEE').format(date);
+                          final dayName = DateFormat('EEEE').format(date);
                           final formattedDate = DateFormat(
                             'dd-MM-yy',
                           ).format(date);
@@ -222,7 +222,7 @@ class _AttendancePageState extends State<AttendancePage> {
             flex: 2,
             child: Text(
               day,
-              style: const TextStyle(fontSize: 13, color: Colors.black54),
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
             ),
           ),
           Expanded(

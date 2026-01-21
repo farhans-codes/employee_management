@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../pages/attendance/attendance_page.dart';
 
 class AttendanceSection extends StatefulWidget {
@@ -104,12 +105,17 @@ class _AttendanceSectionState extends State<AttendanceSection> {
               ),
               const SizedBox(height: 8),
 
-              // Rows
-              ...List.generate(
-                5,
-                (index) =>
-                    _buildTableRow('19-10-26', 'Sun', '09:00 AM', '06:30 PM'),
-              ),
+              ...List.generate(5, (index) {
+                final date = DateTime.now().subtract(Duration(days: index));
+                final formattedDate = DateFormat('dd-MM-yy').format(date);
+                final dayName = DateFormat('EEEE').format(date);
+                return _buildTableRow(
+                  formattedDate,
+                  dayName,
+                  '09:00 AM',
+                  '06:30 PM',
+                );
+              }),
 
               const SizedBox(height: 12),
               Align(
