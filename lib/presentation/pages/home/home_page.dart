@@ -235,7 +235,7 @@ class _HomePageState extends State<HomePage> {
                         );
                       },
                     ),
-                    const SizedBox(height: 100),
+                    const SizedBox(height: 25),
                   ],
                 ),
               ),
@@ -256,8 +256,8 @@ class _HomePageState extends State<HomePage> {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.black.withOpacity(0.0),
-                        Colors.grey.shade400.withOpacity(0.9),
+                        Colors.black.withValues(alpha: 0.0),
+                        Colors.grey.shade400.withValues(alpha: 0.9),
                       ],
                     ),
                   ),
