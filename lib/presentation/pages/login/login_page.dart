@@ -27,27 +27,14 @@ class LoginPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 40),
+
               // Main Icon Placeholder (Diamond shape as in sketch)
-              Transform.rotate(
-                angle: 0.785398, // 45 degrees in radians
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.primary, width: 2),
-                  ),
-                  child: Transform.rotate(
-                    angle: -0.785398, // Rotate back for the icon
-                    child: const Icon(
-                      Icons.business_center_outlined,
-                      size: 50,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
+              const Icon(
+                Icons.business_center_outlined,
+                size: 150,
+                color: AppColors.primary,
               ),
+
               const SizedBox(height: 80),
               // Employee ID Field
               _buildTextField(
@@ -131,23 +118,7 @@ class LoginPage extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(color: Colors.grey.shade400),
-        prefixIcon: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Transform.rotate(
-            angle: 0.785398,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.primary, width: 1.5),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Transform.rotate(
-                angle: -0.785398,
-                child: Icon(icon, size: 18, color: AppColors.primary),
-              ),
-            ),
-          ),
-        ),
+        prefixIcon: Icon(icon, color: AppColors.primary),
         filled: true,
         fillColor: Colors.grey.shade50,
         contentPadding: const EdgeInsets.symmetric(

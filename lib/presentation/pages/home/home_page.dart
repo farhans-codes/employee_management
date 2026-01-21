@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../widgets/attendance_section.dart';
 import '../../widgets/task_card.dart';
+import '../login/login_page.dart';
+import '../profile/profile_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -12,53 +14,66 @@ class HomePage extends StatelessWidget {
         backgroundColor: const Color(0xFF0d4f9d),
         elevation: 0,
         toolbarHeight: 80,
-        title: Row(
-          children: [
-            Container(
-              width: 55,
-              height: 55,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
+        title: GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfilePage()),
+            );
+          },
+          child: Row(
+            children: [
+              Container(
+                width: 55,
+                height: 55,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                ),
+                child: const Icon(
+                  Icons.person,
+                  size: 32,
+                  color: Color(0xFF0d4f9d),
+                ),
               ),
-              child: const Icon(
-                Icons.person,
-                size: 32,
-                color: Color(0xFF0d4f9d),
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Kaniz Fatima',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Kaniz Fatima',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    'L3T2077',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w400,
+                    const SizedBox(height: 2),
+                    Text(
+                      'L3T2077',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w400,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           IconButton(
             onPressed: () {
-              // TODO: Implement logout
+              // Navigate to Login Page and remove all previous routes
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginPage()),
+                (route) => false,
+              );
             },
             icon: const Icon(Icons.logout_rounded, color: Colors.white),
             tooltip: 'Logout',
