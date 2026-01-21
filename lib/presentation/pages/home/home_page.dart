@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../widgets/attendance_section.dart';
 import '../../widgets/task_card.dart';
+import '../../widgets/create_task_dialog.dart';
 import '../login/login_page.dart';
 import '../profile/profile_page.dart';
 
@@ -124,7 +125,12 @@ class HomePage extends StatelessWidget {
                       child: IconButton(
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
-                        onPressed: () {},
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => const CreateTaskDialog(),
+                          );
+                        },
                         icon: const Icon(
                           Icons.add_rounded,
                           color: Colors.white,
