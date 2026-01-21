@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
-import 'presentation/pages/home/home_page.dart';
+import 'presentation/pages/login/login_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Employee Management System',
       theme: AppTheme.lightTheme,
-      home: const HomePage(),
+      home: const LoginPage(),
     );
   }
 }
