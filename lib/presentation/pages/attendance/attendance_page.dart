@@ -129,6 +129,7 @@ class _AttendancePageState extends State<AttendancePage> {
                           _buildTableHeader('Day', flex: 2),
                           _buildTableHeader('In Time', flex: 2),
                           _buildTableHeader('Out Time', flex: 2),
+                          _buildTableHeader('Type', flex: 2),
                         ],
                       ),
                     ),
@@ -159,11 +160,24 @@ class _AttendancePageState extends State<AttendancePage> {
                           final inTime = isSunday ? '-' : '09:00 AM';
                           final outTime = isSunday ? '-' : '06:30 PM';
 
+                          // Mock data for work type
+                          String workType = '-';
+                          if (!isSunday) {
+                            if (day % 6 == 0) {
+                              workType = 'Tour';
+                            } else if (day % 4 == 0) {
+                              workType = 'WFH';
+                            } else {
+                              workType = 'Field';
+                            }
+                          }
+
                           return _buildTableRow(
                             formattedDate,
                             dayName,
                             inTime,
                             outTime,
+                            workType,
                           );
                         },
                       ),
@@ -198,6 +212,7 @@ class _AttendancePageState extends State<AttendancePage> {
     String day,
     String inTime,
     String outTime,
+    String workType,
   ) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
@@ -242,6 +257,26 @@ class _AttendancePageState extends State<AttendancePage> {
               outTime,
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 13, color: Colors.black87),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              workType,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: workType == 'Field'
+                    ? Colors.blue[700]
+                    : workType == 'WFH'
+                    ? Colors.purple[700]
+                    : workType == 'Tour'
+                    ? Colors.orange[800]
+                    : Colors.black87,
+                fontWeight: workType != '-'
+                    ? FontWeight.w600
+                    : FontWeight.normal,
+              ),
             ),
           ),
         ],
