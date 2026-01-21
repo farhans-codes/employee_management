@@ -29,6 +29,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
 
   final List<String> timeSlots = [
     '09:00 - 10:30',
+    '09:39 AM - 11:00 AM', // Added to match the user sketch and mock data
     '10:30 - 12:00',
     '12:00 - 01:30',
     '02:00 - 03:30',
@@ -96,6 +97,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
             Row(
               children: [
                 Expanded(
+                  flex: 3,
                   child: _buildDropdown(
                     label: 'Time Slot*',
                     value: selectedTimeSlot,
@@ -104,8 +106,9 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
                     onChanged: (val) => setState(() => selectedTimeSlot = val),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
+                  flex: 2,
                   child: _buildDropdown(
                     label: 'Status*',
                     value: selectedStatus,
@@ -121,12 +124,14 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
               label: 'Task Description*',
               hint: 'Enter task description',
               controller: descriptionController,
+              maxLines: 4,
             ),
             const SizedBox(height: 20),
             _buildTextField(
               label: 'Remarks',
               hint: 'Enter any remarks',
               controller: remarksController,
+              maxLines: 2,
             ),
             const SizedBox(height: 32),
             Center(
@@ -209,8 +214,10 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
                   value: item,
                   child: Text(
                     item,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 13,
+                      fontSize: 12, // Slightly reduced font size
                       fontWeight: FontWeight.w500,
                       color: Colors.black,
                     ),
@@ -229,6 +236,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
     required String label,
     required String hint,
     required TextEditingController controller,
+    int maxLines = 1,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,6 +252,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
         const SizedBox(height: 8),
         TextField(
           controller: controller,
+          maxLines: maxLines,
           style: const TextStyle(color: Colors.black),
           decoration: InputDecoration(
             hintText: hint,

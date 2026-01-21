@@ -6,6 +6,7 @@ import '../../widgets/task_card.dart';
 import '../../widgets/create_task_dialog.dart';
 import '../login/login_page.dart';
 import '../profile/profile_page.dart';
+import '../task_list/task_list_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -265,7 +266,12 @@ class _HomePageState extends State<HomePage> {
                     color: Colors.transparent,
                     child: InkWell(
                       onTap: () {
-                        // Navigate to Full Task List Page
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const TaskListPage(),
+                          ),
+                        );
                       },
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
