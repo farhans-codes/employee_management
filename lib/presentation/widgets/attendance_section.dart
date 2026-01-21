@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../pages/attendance/attendance_page.dart';
 
 class AttendanceSection extends StatefulWidget {
   const AttendanceSection({super.key});
@@ -114,7 +115,14 @@ class _AttendanceSectionState extends State<AttendanceSection> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AttendancePage(),
+                      ),
+                    );
+                  },
                   icon: const Text(
                     'View Full Month',
                     style: TextStyle(
