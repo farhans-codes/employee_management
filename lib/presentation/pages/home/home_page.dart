@@ -175,6 +175,45 @@ class HomePage extends StatelessWidget {
                     );
                   },
                 ),
+                TaskCard(
+                  time: '04:30 - 06:00',
+                  projectName: 'Daily Progress Report',
+                  initialStatus: 'In Progress',
+                  onEdit: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => const CreateTaskDialog(
+                        isEditing: true,
+                        initialTimeSlot: '04:30 - 06:00',
+                        initialStatus: 'In Progress',
+                        initialDescription: 'Daily Progress Report',
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      // Navigate to Full Task List Page
+                    },
+                    icon: const Text(
+                      'View full task',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0d4f9d),
+                      ),
+                    ),
+                    label: const Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 16,
+                      color: Color(0xFF0d4f9d),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
               ],
             ),
           ),
