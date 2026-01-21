@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import '../../widgets/attendance_section.dart';
 import '../../widgets/task_card.dart';
 import '../../widgets/create_task_dialog.dart';
@@ -81,143 +82,177 @@ class HomePage extends StatelessWidget {
           ),
         ],
       ),
-      body: Container(
-        color: Colors.grey[100],
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Attendance Section
-                const AttendanceSection(),
-                const SizedBox(height: 16),
-                // Daily Task List Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: Stack(
+        children: [
+          Container(
+            color: Colors.grey[100],
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Attendance Section
+                    const AttendanceSection(),
+                    const SizedBox(height: 16),
+                    // Daily Task List Header
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          child: const Icon(
-                            Icons.checklist_rounded,
-                            size: 30,
-                            color: Color(0xFF0d4f9d),
-                          ),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              child: const Icon(
+                                Icons.checklist_rounded,
+                                size: 30,
+                                color: Color(0xFF0d4f9d),
+                              ),
+                            ),
+                            const Text(
+                              'Daily Task List',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
                         ),
-                        const Text(
-                          'Daily Task List',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
+                        Container(
+                          height: 30,
+                          width: 30,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0d4f9d),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => const CreateTaskDialog(),
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.add_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            tooltip: 'Add Task',
                           ),
                         ),
                       ],
                     ),
-                    Container(
-                      height: 30,
-                      width: 30,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0d4f9d),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => const CreateTaskDialog(),
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.add_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        tooltip: 'Add Task',
-                      ),
+
+                    // Task Cards
+                    TaskCard(
+                      time: '10:30 - 12:00',
+                      projectName: 'Project X Research',
+                      initialStatus: 'Completed',
+                      onEdit: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const CreateTaskDialog(
+                            isEditing: true,
+                            initialTimeSlot: '10:30 - 12:00',
+                            initialStatus: 'Completed',
+                            initialDescription: 'Project X Research',
+                          ),
+                        );
+                      },
                     ),
+                    TaskCard(
+                      time: '02:00 - 04:30',
+                      projectName: 'Client Meeting Preparation',
+                      initialStatus: 'Completed',
+                      onEdit: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const CreateTaskDialog(
+                            isEditing: true,
+                            initialTimeSlot: '02:00 - 04:30',
+                            initialStatus: 'Completed',
+                            initialDescription: 'Client Meeting Preparation',
+                          ),
+                        );
+                      },
+                    ),
+                    TaskCard(
+                      time: '04:30 - 06:00',
+                      projectName: 'Daily Progress Report',
+                      initialStatus: 'In Progress',
+                      onEdit: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const CreateTaskDialog(
+                            isEditing: true,
+                            initialTimeSlot: '04:30 - 06:00',
+                            initialStatus: 'In Progress',
+                            initialDescription: 'Daily Progress Report',
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 100),
                   ],
                 ),
-
-                // Task Cards
-                TaskCard(
-                  time: '10:30 - 12:00',
-                  projectName: 'Project X Research',
-                  initialStatus: 'Completed',
-                  onEdit: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => const CreateTaskDialog(
-                        isEditing: true,
-                        initialTimeSlot: '10:30 - 12:00',
-                        initialStatus: 'Completed',
-                        initialDescription: 'Project X Research',
+              ),
+            ),
+          ),
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: 20,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0d4f9d).withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                    );
-                  },
-                ),
-                TaskCard(
-                  time: '02:00 - 04:30',
-                  projectName: 'Client Meeting Preparation',
-                  initialStatus: 'Completed',
-                  onEdit: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => const CreateTaskDialog(
-                        isEditing: true,
-                        initialTimeSlot: '02:00 - 04:30',
-                        initialStatus: 'Completed',
-                        initialDescription: 'Client Meeting Preparation',
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () {
+                        // Navigate to Full Task List Page
+                      },
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'View full task',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                ),
-                TaskCard(
-                  time: '04:30 - 06:00',
-                  projectName: 'Daily Progress Report',
-                  initialStatus: 'In Progress',
-                  onEdit: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => const CreateTaskDialog(
-                        isEditing: true,
-                        initialTimeSlot: '04:30 - 06:00',
-                        initialStatus: 'In Progress',
-                        initialDescription: 'Daily Progress Report',
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: () {
-                      // Navigate to Full Task List Page
-                    },
-                    icon: const Text(
-                      'View full task',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF0d4f9d),
-                      ),
-                    ),
-                    label: const Icon(
-                      Icons.arrow_forward_rounded,
-                      size: 16,
-                      color: Color(0xFF0d4f9d),
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
