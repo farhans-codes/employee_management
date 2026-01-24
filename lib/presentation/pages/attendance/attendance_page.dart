@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/attendance_provider.dart';
 
 class AttendancePage extends StatefulWidget {
   const AttendancePage({super.key});
@@ -11,28 +14,45 @@ class AttendancePage extends StatefulWidget {
 class _AttendancePageState extends State<AttendancePage> {
   DateTime _selectedDate = DateTime.now();
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchData();
+    });
+  }
+
+  void _fetchData() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final attendanceProvider = Provider.of<AttendanceProvider>(
+      context,
+      listen: false,
+    );
+    if (authProvider.token != null) {
+      attendanceProvider.fetchAttendance(
+        authProvider.token!,
+        month: _selectedDate.month,
+        year: _selectedDate.year,
+      );
+    }
+  }
+
   void _previousMonth() {
     setState(() {
       _selectedDate = DateTime(_selectedDate.year, _selectedDate.month - 1);
     });
+    _fetchData();
   }
 
   void _nextMonth() {
     setState(() {
       _selectedDate = DateTime(_selectedDate.year, _selectedDate.month + 1);
     });
-  }
-
-  int _getDaysInMonth(int year, int month) {
-    return DateTime(year, month + 1, 0).day;
+    _fetchData();
   }
 
   @override
   Widget build(BuildContext context) {
-    final int daysInMonth = _getDaysInMonth(
-      _selectedDate.year,
-      _selectedDate.month,
-    );
     final String monthYearStr = DateFormat('MMMM yyyy').format(_selectedDate);
 
     return Scaffold(
@@ -56,138 +76,125 @@ class _AttendancePageState extends State<AttendancePage> {
             fontWeight: FontWeight.w700,
           ),
         ),
-        centerTitle: false,
       ),
-      body: Column(
-        children: [
-          // Month Selector Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  width: 160,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!, width: 1),
-                  ),
-                  child: Center(
-                    child: Text(
-                      monthYearStr,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-                ),
-                Row(
+      body: Consumer<AttendanceProvider>(
+        builder: (context, attendanceProvider, child) {
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    IconButton(
-                      onPressed: _previousMonth,
-                      icon: const Icon(Icons.chevron_left_rounded, size: 30),
-                      color: const Color(0xFF0d4f9d),
-                    ),
-                    IconButton(
-                      onPressed: _nextMonth,
-                      icon: const Icon(Icons.chevron_right_rounded, size: 30),
-                      color: const Color(0xFF0d4f9d),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    // Table Header
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-                      child: Row(
-                        children: [
-                          _buildTableHeader('Date', flex: 2),
-                          _buildTableHeader('Day', flex: 2),
-                          _buildTableHeader('In Time', flex: 2),
-                          _buildTableHeader('Out Time', flex: 2),
-                          _buildTableHeader('Type', flex: 2),
-                        ],
+                    Container(
+                      width: 160,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!, width: 1),
                       ),
-                    ),
-                    const Divider(height: 1, thickness: 0.5),
-                    // Attendance List
-                    Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+                      child: Center(
+                        child: Text(
+                          monthYearStr,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
                         ),
-                        itemCount: daysInMonth,
-                        itemBuilder: (context, index) {
-                          final day = index + 1;
-                          final date = DateTime(
-                            _selectedDate.year,
-                            _selectedDate.month,
-                            day,
-                          );
-                          final dayName = DateFormat('EEEE').format(date);
-                          final formattedDate = DateFormat(
-                            'dd-MM-yy',
-                          ).format(date);
-
-                          // Mock data for in/out times
-                          // Sunday is holiday
-                          final isSunday = date.weekday == DateTime.sunday;
-                          final inTime = isSunday ? '-' : '09:00 AM';
-                          final outTime = isSunday ? '-' : '06:30 PM';
-
-                          // Mock data for work type
-                          String workType = '-';
-                          if (!isSunday) {
-                            if (day % 6 == 0) {
-                              workType = 'Tour';
-                            } else if (day % 4 == 0) {
-                              workType = 'WFH';
-                            } else {
-                              workType = 'Field';
-                            }
-                          }
-
-                          return _buildTableRow(
-                            formattedDate,
-                            dayName,
-                            inTime,
-                            outTime,
-                            workType,
-                          );
-                        },
                       ),
+                    ),
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: _previousMonth,
+                          icon: const Icon(
+                            Icons.chevron_left_rounded,
+                            size: 30,
+                          ),
+                          color: const Color(0xFF0d4f9d),
+                        ),
+                        IconButton(
+                          onPressed: _nextMonth,
+                          icon: const Icon(
+                            Icons.chevron_right_rounded,
+                            size: 30,
+                          ),
+                          color: const Color(0xFF0d4f9d),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-            ),
-          ),
-        ],
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+                          child: Row(
+                            children: [
+                              _buildTableHeader('Date', flex: 2),
+                              _buildTableHeader('Day', flex: 2),
+                              _buildTableHeader('In Time', flex: 2),
+                              _buildTableHeader('Out Time', flex: 2),
+                              _buildTableHeader('Type', flex: 2),
+                            ],
+                          ),
+                        ),
+                        const Divider(height: 1, thickness: 0.5),
+                        Expanded(
+                          child: attendanceProvider.isLoading
+                              ? const Center(child: CircularProgressIndicator())
+                              : attendanceProvider.attendances.isEmpty
+                              ? const Center(
+                                  child: Text(
+                                    'No attendance data for this month',
+                                  ),
+                                )
+                              : ListView.builder(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  itemCount:
+                                      attendanceProvider.attendances.length,
+                                  itemBuilder: (context, index) {
+                                    final log =
+                                        attendanceProvider.attendances[index];
+                                    return _buildTableRow(
+                                      log.date,
+                                      log.dayName,
+                                      log.inTime,
+                                      log.outTime,
+                                      log.workType,
+                                    );
+                                  },
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -229,7 +236,7 @@ class _AttendancePageState extends State<AttendancePage> {
               date,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: Colors.black87,
               ),
@@ -240,7 +247,7 @@ class _AttendancePageState extends State<AttendancePage> {
             child: Text(
               day,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: Colors.black87),
+              style: const TextStyle(fontSize: 12, color: Colors.black87),
             ),
           ),
           Expanded(
@@ -248,7 +255,7 @@ class _AttendancePageState extends State<AttendancePage> {
             child: Text(
               inTime,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: Colors.black87),
+              style: const TextStyle(fontSize: 12, color: Colors.black87),
             ),
           ),
           Expanded(
@@ -256,7 +263,7 @@ class _AttendancePageState extends State<AttendancePage> {
             child: Text(
               outTime,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: Colors.black87),
+              style: const TextStyle(fontSize: 12, color: Colors.black87),
             ),
           ),
           Expanded(
@@ -265,7 +272,7 @@ class _AttendancePageState extends State<AttendancePage> {
               workType,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 color: workType == 'Field'
                     ? Colors.blue[700]
                     : workType == 'WFH'

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/attendance_provider.dart';
 import '../pages/attendance/attendance_page.dart';
 
 class AttendanceSection extends StatefulWidget {
@@ -10,144 +12,206 @@ class AttendanceSection extends StatefulWidget {
 }
 
 class _AttendanceSectionState extends State<AttendanceSection> {
-  String selectedTab = 'WFH';
+  String selectedTab = 'Field';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchData();
+    });
+  }
+
+  void _fetchData() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final attendanceProvider = Provider.of<AttendanceProvider>(
+      context,
+      listen: false,
+    );
+    if (authProvider.token != null) {
+      attendanceProvider.fetchAttendance(authProvider.token!);
+    }
+  }
+
+  Future<void> _handleAction(String action) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final attendanceProvider = Provider.of<AttendanceProvider>(
+      context,
+      listen: false,
+    );
+
+    if (authProvider.token == null) return;
+
+    bool success = false;
+    if (action == 'In') {
+      success = await attendanceProvider.checkIn(
+        authProvider.token!,
+        selectedTab,
+      );
+    } else {
+      success = await attendanceProvider.checkOut(authProvider.token!);
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success ? 'Check-$action successful' : 'Check-$action failed',
+          ),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Title OUTSIDE the card
-        Row(
+    return Consumer<AttendanceProvider>(
+      builder: (context, attendanceProvider, child) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  child: const Icon(
+                    Icons.watch_later,
+                    size: 30,
+                    color: Color(0xFF0d4f9d),
+                  ),
+                ),
+                const Text(
+                  'Attendance',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
             Container(
-              padding: const EdgeInsets.all(10),
-              child: const Icon(
-                Icons.watch_later,
-                size: 30,
-                color: Color(0xFF0d4f9d),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
               ),
-            ),
-            const Text(
-              'Attendance',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-
-        // Card with attendance content
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Modern Tabs - NO GRADIENT
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                padding: const EdgeInsets.all(4),
-                child: Row(
-                  children: [
-                    _buildTab('WFH'),
-                    _buildTab('Field'),
-                    _buildTab('Tour'),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // In/Out Buttons - NO GRADIENT
-              Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: _buildActionButton(
-                      'Check In',
-                      Icons.login_rounded,
-                      const Color(0xFF4CAF50),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: Row(
+                      children: [
+                        _buildTab('WFH'),
+                        _buildTab('Field'),
+                        _buildTab('Tour'),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildActionButton(
-                      'Check Out',
-                      Icons.logout_rounded,
-                      const Color(0xFFEF5350),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildActionButton(
+                          'Check In',
+                          Icons.login_rounded,
+                          const Color(0xFF4CAF50),
+                          () => _handleAction('In'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildActionButton(
+                          'Check Out',
+                          Icons.logout_rounded,
+                          const Color(0xFFEF5350),
+                          () => _handleAction('Out'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        _buildTableHeader('Date', flex: 2),
+                        _buildTableHeader('Day', flex: 2),
+                        _buildTableHeader('In Time', flex: 2),
+                        _buildTableHeader('Out Time', flex: 2),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  if (attendanceProvider.isLoading)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (attendanceProvider.attendances.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20.0),
+                        child: Text('No recent logs'),
+                      ),
+                    )
+                  else
+                    ...attendanceProvider.attendances
+                        .take(5)
+                        .map(
+                          (log) => _buildTableRow(
+                            log.date,
+                            log.dayName,
+                            log.inTime,
+                            log.outTime,
+                          ),
+                        ),
+
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AttendancePage(),
+                          ),
+                        );
+                      },
+                      icon: const Text(
+                        'View Full Month',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0d4f9d),
+                        ),
+                      ),
+                      label: const Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 16,
+                        color: Color(0xFF0d4f9d),
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-
-              // Attendance Table Header
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 12,
-                  horizontal: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    _buildTableHeader('Date', flex: 2),
-                    _buildTableHeader('Day', flex: 2),
-                    _buildTableHeader('In Time', flex: 2),
-                    _buildTableHeader('Out Time', flex: 2),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              ...List.generate(5, (index) {
-                final date = DateTime.now().subtract(Duration(days: index));
-                final formattedDate = DateFormat('dd-MM-yy').format(date);
-                final dayName = DateFormat('EEEE').format(date);
-                return _buildTableRow(
-                  formattedDate,
-                  dayName,
-                  '09:00 AM',
-                  '06:30 PM',
-                );
-              }),
-
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AttendancePage(),
-                      ),
-                    );
-                  },
-                  icon: const Text(
-                    'View Full Month',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF0d4f9d),
-                    ),
-                  ),
-                  label: const Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 16,
-                    color: Color(0xFF0d4f9d),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -177,7 +241,12 @@ class _AttendanceSectionState extends State<AttendanceSection> {
     );
   }
 
-  Widget _buildActionButton(String label, IconData icon, Color color) {
+  Widget _buildActionButton(
+    String label,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: color,
@@ -187,7 +256,7 @@ class _AttendanceSectionState extends State<AttendanceSection> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
-          onTap: () {},
+          onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 14),
             child: Row(
@@ -246,7 +315,7 @@ class _AttendanceSectionState extends State<AttendanceSection> {
             child: Text(
               date,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13),
+              style: const TextStyle(fontSize: 12),
             ),
           ),
           Expanded(
@@ -254,7 +323,7 @@ class _AttendanceSectionState extends State<AttendanceSection> {
             child: Text(
               day,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13),
+              style: const TextStyle(fontSize: 12),
             ),
           ),
           Expanded(
@@ -262,7 +331,7 @@ class _AttendanceSectionState extends State<AttendanceSection> {
             child: Text(
               inTime,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13),
+              style: const TextStyle(fontSize: 12),
             ),
           ),
           Expanded(
@@ -270,7 +339,7 @@ class _AttendanceSectionState extends State<AttendanceSection> {
             child: Text(
               outTime,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13),
+              style: const TextStyle(fontSize: 12),
             ),
           ),
         ],

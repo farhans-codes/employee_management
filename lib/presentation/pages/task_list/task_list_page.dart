@@ -1,49 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/task_provider.dart';
 import '../../widgets/create_task_dialog.dart';
 
-class TaskListPage extends StatelessWidget {
+class TaskListPage extends StatefulWidget {
   const TaskListPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Mocked data for at least 3 days
-    final List<Map<String, dynamic>> tasks = [
-      {
-        'day': 'Saturday',
-        'time': '09:39 AM - 11:00 AM',
-        'status': 'Complete',
-        'description':
-            'here the task description will be written and the card will expand as the description length and this is it yah',
-      },
-      {
-        'day': 'Saturday',
-        'time': '09:39 AM - 11:00 AM',
-        'status': 'Complete',
-        'description':
-            'here the task description will be written and the card will expand as the description length and this is it yah',
-      },
-      {
-        'day': 'Saturday',
-        'time': '09:39 AM - 11:00 AM',
-        'status': 'Complete',
-        'description':
-            'here the task description will be written and the card will expand as the description length and this is it yah',
-      },
-      {
-        'day': 'Sunday',
-        'time': '10:00 AM - 12:00 PM',
-        'status': 'In Progress',
-        'description':
-            'Working on the employee management system UI components and ensuring responsiveness.',
-      },
-      {
-        'day': 'Monday',
-        'time': '02:00 PM - 04:00 PM',
-        'status': 'Next',
-        'description': 'Daily standup meeting and progress report submission.',
-      },
-    ];
+  State<TaskListPage> createState() => _TaskListPageState();
+}
 
+class _TaskListPageState extends State<TaskListPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchTasks();
+    });
+  }
+
+  void _fetchTasks() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+
+    if (authProvider.token != null) {
+      taskProvider.fetchTasks(authProvider.token!);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
@@ -66,16 +53,34 @@ class TaskListPage extends StatelessWidget {
           ),
         ),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(20),
-        itemCount: tasks.length,
-        itemBuilder: (context, index) {
-          final task = tasks[index];
-          return TaskListCard(
-            day: task['day'],
-            time: task['time'],
-            status: task['status'],
-            description: task['description'],
+      body: Consumer<TaskProvider>(
+        builder: (context, taskProvider, child) {
+          if (taskProvider.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (taskProvider.tasks.isEmpty) {
+            return const Center(
+              child: Text(
+                'No tasks found',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(20),
+            itemCount: taskProvider.tasks.length,
+            itemBuilder: (context, index) {
+              final task = taskProvider.tasks[index];
+              return TaskListCard(
+                taskId: task.id,
+                day: task.dayName,
+                time: task.timeSlot,
+                status: task.status,
+                description: task.description,
+              );
+            },
           );
         },
       ),
@@ -84,6 +89,7 @@ class TaskListPage extends StatelessWidget {
 }
 
 class TaskListCard extends StatelessWidget {
+  final int taskId;
   final String day;
   final String time;
   final String status;
@@ -91,6 +97,7 @@ class TaskListCard extends StatelessWidget {
 
   const TaskListCard({
     super.key,
+    required this.taskId,
     required this.day,
     required this.time,
     required this.status,
@@ -113,6 +120,88 @@ class TaskListCard extends StatelessWidget {
     }
   }
 
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Delete Task',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+          ),
+          content: const Text(
+            'Are you sure you want to delete this task? This action cannot be undone.',
+            style: TextStyle(fontSize: 15),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+
+                final authProvider = Provider.of<AuthProvider>(
+                  context,
+                  listen: false,
+                );
+                final taskProvider = Provider.of<TaskProvider>(
+                  context,
+                  listen: false,
+                );
+
+                if (authProvider.token != null) {
+                  final success = await taskProvider.deleteTask(
+                    authProvider.token!,
+                    taskId,
+                  );
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          success
+                              ? 'Task deleted successfully'
+                              : 'Failed to delete task',
+                        ),
+                        backgroundColor: success ? Colors.green : Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Delete',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -124,7 +213,7 @@ class TaskListCard extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade300, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 15,
             offset: const Offset(0, 6),
           ),
@@ -177,26 +266,49 @@ class TaskListCard extends StatelessWidget {
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.bottomRight,
-            child: GestureDetector(
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => CreateTaskDialog(
-                    isEditing: true,
-                    initialTimeSlot: time,
-                    initialStatus: status == 'Complete' ? 'Completed' : status,
-                    initialDescription: description,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Edit Button
+                GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => CreateTaskDialog(
+                        isEditing: true,
+                        initialTimeSlot: time,
+                        initialStatus: status == 'Complete'
+                            ? 'Completed'
+                            : status,
+                        initialDescription: description,
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    child: const Icon(
+                      Icons.edit_outlined,
+                      size: 22,
+                      color: Color(0xFF0d4f9d),
+                    ),
                   ),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                child: const Icon(
-                  Icons.edit_outlined,
-                  size: 22,
-                  color: Color(0xFF0d4f9d),
                 ),
-              ),
+                const SizedBox(width: 12),
+                // Delete Button
+                GestureDetector(
+                  onTap: () {
+                    _showDeleteConfirmation(context);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    child: const Icon(
+                      Icons.delete_outline,
+                      size: 22,
+                      color: Colors.red,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
