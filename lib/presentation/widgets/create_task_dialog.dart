@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../providers/auth_provider.dart';
+import '../providers/task_provider.dart';
+import '../../../data/models/task_model.dart';
 
 class CreateTaskDialog extends StatefulWidget {
   final bool isEditing;
+  final int? taskId;
   final String? initialTimeSlot;
   final String? initialStatus;
   final String? initialDescription;
@@ -11,6 +16,7 @@ class CreateTaskDialog extends StatefulWidget {
   const CreateTaskDialog({
     super.key,
     this.isEditing = false,
+    this.taskId,
     this.initialTimeSlot,
     this.initialStatus,
     this.initialDescription,
@@ -26,10 +32,11 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
   String? selectedStatus;
   late TextEditingController descriptionController;
   late TextEditingController remarksController;
+  bool isProcessing = false;
 
   final List<String> timeSlots = [
     '09:00 AM - 10:30 AM',
-    '09:39 AM - 11:00 AM', // Added to match the user sketch and mock data
+    '09:39 AM - 11:00 AM',
     '10:30 AM - 12:00 PM',
     '12:00 PM - 01:30 PM',
     '02:00 PM - 03:30 PM',
@@ -37,7 +44,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
     '05:00 PM - 06:30 PM',
   ];
   final List<String> statuses = [
-    'Completed',
+    'Completed', // Standardized to match mock and UI mapping
     'In Progress',
     'Next',
     'Blocking',
@@ -59,6 +66,63 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
     descriptionController.dispose();
     remarksController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleSave() async {
+    final description = descriptionController.text.trim();
+    if (selectedTimeSlot == null ||
+        selectedStatus == null ||
+        description.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all required fields (*)')),
+      );
+      return;
+    }
+
+    setState(() => isProcessing = true);
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+
+    bool success = false;
+    if (widget.isEditing && widget.taskId != null) {
+      success = await taskProvider.updateTask(
+        authProvider.token!,
+        widget.taskId!,
+        status: selectedStatus,
+        description: description,
+      );
+    } else {
+      final task = TaskModel(
+        id: 0, // Server or provider will assign
+        dayName: '', // Provider will assign
+        date: '', // Provider will assign
+        timeSlot: selectedTimeSlot!,
+        status: selectedStatus!,
+        description: description,
+      );
+      success = await taskProvider.createTask(authProvider.token!, task);
+    }
+
+    if (mounted) {
+      setState(() => isProcessing = false);
+      if (success) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(widget.isEditing ? 'Task updated' : 'Task created'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(taskProvider.errorMessage ?? 'Operation failed'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -103,7 +167,9 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
                     value: selectedTimeSlot,
                     items: timeSlots,
                     hint: 'Select Slot',
-                    onChanged: (val) => setState(() => selectedTimeSlot = val),
+                    onChanged: isProcessing
+                        ? null
+                        : (val) => setState(() => selectedTimeSlot = val),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -114,7 +180,9 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
                     value: selectedStatus,
                     items: statuses,
                     hint: 'Select Status',
-                    onChanged: (val) => setState(() => selectedStatus = val),
+                    onChanged: isProcessing
+                        ? null
+                        : (val) => setState(() => selectedStatus = val),
                   ),
                 ),
               ],
@@ -125,6 +193,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
               hint: 'Enter task description',
               controller: descriptionController,
               maxLines: 4,
+              enabled: !isProcessing,
             ),
             const SizedBox(height: 20),
             _buildTextField(
@@ -132,6 +201,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
               hint: 'Enter any remarks',
               controller: remarksController,
               maxLines: 2,
+              enabled: !isProcessing,
             ),
             const SizedBox(height: 32),
             Center(
@@ -149,7 +219,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
                   ],
                 ),
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: isProcessing ? null : _handleSave,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3B82F6),
                     foregroundColor: Colors.white,
@@ -158,10 +228,22 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'Done',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
+                  child: isProcessing
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Done',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -176,7 +258,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
     required String? value,
     required List<String> items,
     required String hint,
-    required Function(String?) onChanged,
+    required Function(String?)? onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,7 +299,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 11, // Reduced font size to fit containers
+                      fontSize: 11,
                       fontWeight: FontWeight.w500,
                       color: Colors.black,
                     ),
@@ -237,6 +319,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
     required String hint,
     required TextEditingController controller,
     int maxLines = 1,
+    bool enabled = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,6 +336,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
         TextField(
           controller: controller,
           maxLines: maxLines,
+          enabled: enabled,
           style: const TextStyle(color: Colors.black),
           decoration: InputDecoration(
             hintText: hint,
@@ -275,6 +359,13 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
               borderSide: const BorderSide(
                 color: AppColors.primary,
                 width: 2.0,
+              ),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: AppColors.primary.withValues(alpha: 0.5),
+                width: 1.5,
               ),
             ),
           ),

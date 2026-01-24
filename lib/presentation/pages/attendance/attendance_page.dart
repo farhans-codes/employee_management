@@ -159,7 +159,9 @@ class _AttendancePageState extends State<AttendancePage> {
                         ),
                         const Divider(height: 1, thickness: 0.5),
                         Expanded(
-                          child: attendanceProvider.isLoading
+                          child:
+                              attendanceProvider.isLoading &&
+                                  attendanceProvider.attendances.isEmpty
                               ? const Center(child: CircularProgressIndicator())
                               : attendanceProvider.attendances.isEmpty
                               ? const Center(

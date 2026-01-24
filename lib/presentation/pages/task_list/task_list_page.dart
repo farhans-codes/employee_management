@@ -55,7 +55,7 @@ class _TaskListPageState extends State<TaskListPage> {
       ),
       body: Consumer<TaskProvider>(
         builder: (context, taskProvider, child) {
-          if (taskProvider.isLoading) {
+          if (taskProvider.isLoading && taskProvider.tasks.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -276,6 +276,7 @@ class TaskListCard extends StatelessWidget {
                       context: context,
                       builder: (context) => CreateTaskDialog(
                         isEditing: true,
+                        taskId: taskId,
                         initialTimeSlot: time,
                         initialStatus: status == 'Complete'
                             ? 'Completed'

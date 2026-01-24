@@ -153,7 +153,8 @@ class _AttendanceSectionState extends State<AttendanceSection> {
                   ),
                   const SizedBox(height: 8),
 
-                  if (attendanceProvider.isLoading)
+                  if (attendanceProvider.isLoading &&
+                      attendanceProvider.attendances.isEmpty)
                     const Center(
                       child: Padding(
                         padding: EdgeInsets.all(20.0),

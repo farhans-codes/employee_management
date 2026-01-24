@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../data/datasources/api_service.dart';
 import '../../data/models/task_model.dart';
 
@@ -8,6 +9,11 @@ class TaskProvider extends ChangeNotifier {
   List<TaskModel> _tasks = [];
   bool _isLoading = false;
   String? _errorMessage;
+
+  // Track session changes for mock persistence
+  final List<TaskModel> _sessionCreatedTasks = [];
+  final Map<int, TaskModel> _sessionUpdatedTasks = {};
+  final Set<int> _sessionDeletedTaskIds = {};
 
   // Getters
   List<TaskModel> get tasks => _tasks;
@@ -28,7 +34,34 @@ class TaskProvider extends ChangeNotifier {
       );
 
       if (response.success) {
-        _tasks = response.data;
+        List<TaskModel> apiTasks = response.data;
+
+        // Apply session deletions
+        apiTasks.removeWhere((t) => _sessionDeletedTaskIds.contains(t.id));
+
+        // Apply session updates to existing tasks
+        for (int i = 0; i < apiTasks.length; i++) {
+          if (_sessionUpdatedTasks.containsKey(apiTasks[i].id)) {
+            apiTasks[i] = _sessionUpdatedTasks[apiTasks[i].id]!;
+          }
+        }
+
+        // Add session created tasks (check for duplicates just in case)
+        for (var newTask in _sessionCreatedTasks) {
+          if (!apiTasks.any((t) => t.id == newTask.id)) {
+            apiTasks.add(newTask);
+          }
+        }
+
+        // Sort: newest first (assuming ID represents order or we can sort by date)
+        // For now, let's sort by date descending, then ID descending
+        apiTasks.sort((a, b) {
+          int dateComp = b.date.compareTo(a.date);
+          if (dateComp != 0) return dateComp;
+          return b.id.compareTo(a.id);
+        });
+
+        _tasks = apiTasks;
       } else {
         _errorMessage = 'Failed to fetch tasks';
       }
@@ -42,25 +75,35 @@ class TaskProvider extends ChangeNotifier {
 
   // Create task
   Future<bool> createTask(String token, TaskModel task) async {
-    _isLoading = true;
-    notifyListeners();
-
+    // API returns success for mock, but we need to update locally
     try {
       final success = await _apiService.createTask(token, task);
 
       if (success) {
-        // Refresh task list
+        final now = DateTime.now();
+        // Generate a pseudo-unique ID for session
+        final mockId = DateTime.now().millisecondsSinceEpoch;
+        final dayName = DateFormat('EEEE').format(now);
+        final dateStr = DateFormat('yyyy-MM-dd').format(now);
+
+        final newTask = task.copyWith(
+          id: mockId,
+          dayName: dayName,
+          date: dateStr,
+        );
+
+        _sessionCreatedTasks.add(newTask);
+
+        // Refresh local list immediately
         await fetchTasks(token);
         return true;
       } else {
         _errorMessage = 'Failed to create task';
-        _isLoading = false;
         notifyListeners();
         return false;
       }
     } catch (e) {
       _errorMessage = 'Error: ${e.toString()}';
-      _isLoading = false;
       notifyListeners();
       return false;
     }
@@ -82,13 +125,27 @@ class TaskProvider extends ChangeNotifier {
       );
 
       if (success) {
-        // Update local task
+        // Find existing task
         final index = _tasks.indexWhere((t) => t.id == taskId);
         if (index != -1) {
-          _tasks[index] = _tasks[index].copyWith(
+          final updatedTask = _tasks[index].copyWith(
             status: status ?? _tasks[index].status,
             description: description ?? _tasks[index].description,
           );
+
+          // Store in session updates
+          _sessionUpdatedTasks[taskId] = updatedTask;
+
+          // If it was a newly created task, update it there too
+          final createdIndex = _sessionCreatedTasks.indexWhere(
+            (t) => t.id == taskId,
+          );
+          if (createdIndex != -1) {
+            _sessionCreatedTasks[createdIndex] = updatedTask;
+          }
+
+          // Update local list
+          _tasks[index] = updatedTask;
           notifyListeners();
         }
         return true;
@@ -105,6 +162,11 @@ class TaskProvider extends ChangeNotifier {
       final success = await _apiService.deleteTask(token, taskId);
 
       if (success) {
+        // Track deletion
+        _sessionDeletedTaskIds.add(taskId);
+        _sessionCreatedTasks.removeWhere((t) => t.id == taskId);
+        _sessionUpdatedTasks.remove(taskId);
+
         // Remove from local list
         _tasks.removeWhere((t) => t.id == taskId);
         notifyListeners();

@@ -213,7 +213,8 @@ class _HomePageState extends State<HomePage> {
                         ),
 
                         // Task Cards - from API or loading state
-                        if (taskProvider.isLoading)
+                        if (taskProvider.isLoading &&
+                            taskProvider.tasks.isEmpty)
                           const Center(
                             child: Padding(
                               padding: EdgeInsets.all(32),
@@ -232,6 +233,8 @@ class _HomePageState extends State<HomePage> {
                               .take(3)
                               .map(
                                 (task) => TaskCard(
+                                  key: ValueKey(task.id),
+                                  taskId: task.id,
                                   time: task.timeSlot,
                                   projectName: task.description,
                                   initialStatus: task.status == 'Complete'
@@ -242,6 +245,7 @@ class _HomePageState extends State<HomePage> {
                                       context: context,
                                       builder: (context) => CreateTaskDialog(
                                         isEditing: true,
+                                        taskId: task.id,
                                         initialTimeSlot: task.timeSlot,
                                         initialStatus: task.status == 'Complete'
                                             ? 'Completed'

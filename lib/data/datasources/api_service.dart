@@ -25,23 +25,26 @@ class ApiService {
   Future<LoginResponse> login(String employeeId, String password) async {
     try {
       final url = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.login}');
-      // Postman mock matching is strict with whitespace.
-      // Using an encoder with 4 spaces to match the collection examples.
-      const encoder = JsonEncoder.withIndent('    ');
-      final body = encoder.convert({
+      final body = jsonEncode({
         'employee_id': employeeId,
         'password': password,
       });
 
+      // Special handling for Postman Mock Server to match multi-example responses
+      final headers = _getHeaders();
+      if (ApiConstants.baseUrl.contains('mock.pstmn.io')) {
+        if (employeeId == 'L3T2077') {
+          headers['x-mock-response-name'] = 'Success - Employee 1';
+        } else if (employeeId == 'L3T2088') {
+          headers['x-mock-response-name'] = 'Success - Employee 2';
+        }
+      }
+
       print('--- API REQUEST ---');
       print('URL: $url');
-      print('Body: (formatted for mock matching)\n$body');
+      print('Body: $body');
 
-      final response = await _client.post(
-        url,
-        headers: _getHeaders(),
-        body: body,
-      );
+      final response = await _client.post(url, headers: headers, body: body);
 
       print('--- API RESPONSE ---');
       print('Status Code: ${response.statusCode}');
@@ -99,10 +102,19 @@ class ApiService {
 
   Future<UserModel?> getProfile(String token) async {
     try {
-      final response = await _client.get(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.profile}'),
-        headers: _getHeaders(token: token),
-      );
+      final url = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.profile}');
+
+      // Special handling for Postman Mock Server
+      final headers = _getHeaders(token: token);
+      if (ApiConstants.baseUrl.contains('mock.pstmn.io')) {
+        if (token == 'mock_jwt_token_kaniz_xyz123') {
+          headers['x-mock-response-name'] = 'Profile - Employee 1 (Kaniz)';
+        } else if (token == 'mock_jwt_token_rahim_abc456') {
+          headers['x-mock-response-name'] = 'Profile - Employee 2 (Rahim)';
+        }
+      }
+
+      final response = await _client.get(url, headers: headers);
 
       final data = jsonDecode(response.body);
       if (data['success'] == true && data['data'] != null) {

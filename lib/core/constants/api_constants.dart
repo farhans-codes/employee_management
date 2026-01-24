@@ -1,6 +1,6 @@
 class ApiConstants {
   static const String baseUrl =
-      'https://1f3224b1-96a3-4f15-ae68-836eafa1cd33.mock.pstmn.io';
+      'https://8b3abf7c-20cb-453a-bfba-f314c99cc45d.mock.pstmn.io';
 
   // Auth endpoints
   static const String login = '/login';
