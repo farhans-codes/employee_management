@@ -17,6 +17,14 @@ class _LoginPageState extends State<LoginPage> {
   bool _isPasswordVisible = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AuthProvider>(context, listen: false).clearError();
+    });
+  }
+
+  @override
   void dispose() {
     _employeeIdController.dispose();
     _passwordController.dispose();
