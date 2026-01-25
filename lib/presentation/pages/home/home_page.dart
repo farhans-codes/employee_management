@@ -4,6 +4,7 @@ import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/task_provider.dart';
+import '../../providers/attendance_provider.dart';
 import '../../widgets/attendance_section.dart';
 import '../../widgets/task_card.dart';
 import '../../widgets/create_task_dialog.dart';
@@ -69,7 +70,17 @@ class _HomePageState extends State<HomePage> {
 
   void _handleLogout() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+    final attendanceProvider = Provider.of<AttendanceProvider>(
+      context,
+      listen: false,
+    );
+
     await authProvider.logout();
+
+    // Clear session-specific mock data
+    taskProvider.clearSession();
+    attendanceProvider.clearSession();
 
     if (mounted) {
       Navigator.pushAndRemoveUntil(

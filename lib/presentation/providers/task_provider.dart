@@ -1,116 +1,80 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../data/datasources/api_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../data/models/task_model.dart';
 
 class TaskProvider extends ChangeNotifier {
-  final ApiService _apiService = ApiService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   List<TaskModel> _tasks = [];
   bool _isLoading = false;
   String? _errorMessage;
 
-  // Track session changes for mock persistence
-  final List<TaskModel> _sessionCreatedTasks = [];
-  final Map<int, TaskModel> _sessionUpdatedTasks = {};
-  final Set<int> _sessionDeletedTaskIds = {};
+  // Track session changes is no longer needed as Firestore provides persistence
+  // but we keep the getters for UI compatibility
 
   // Getters
   List<TaskModel> get tasks => _tasks;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  // Fetch tasks
+  // Fetch tasks from Firestore
   Future<void> fetchTasks(String token, {int page = 1, int limit = 10}) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final response = await _apiService.getTasks(
-        token,
-        page: page,
-        limit: limit,
-      );
+      final querySnapshot = await _firestore
+          .collection('tasks')
+          .where('userId', isEqualTo: user.uid)
+          .orderBy('date', descending: true)
+          .orderBy('id', descending: true)
+          .get();
 
-      List<TaskModel> apiTasks = [];
-      if (response.success) {
-        apiTasks = response.data;
-      } else {
-        // Log error but don't clear the list if we have session tasks
-        _errorMessage = 'Note: Using local data as server sync failed';
-      }
-
-      // Apply session deletions
-      apiTasks.removeWhere((t) => _sessionDeletedTaskIds.contains(t.id));
-
-      // Use a map to track combined list for easier updating/merging
-      Map<int, TaskModel> combinedTasksMap = {for (var t in apiTasks) t.id: t};
-
-      // Add back session-updated tasks
-      _sessionUpdatedTasks.forEach((id, task) {
-        if (!_sessionDeletedTaskIds.contains(id)) {
-          combinedTasksMap[id] = task;
-        }
-      });
-
-      // Add session-created tasks
-      for (var newTask in _sessionCreatedTasks) {
-        if (!_sessionDeletedTaskIds.contains(newTask.id)) {
-          combinedTasksMap[newTask.id] = newTask;
-        }
-      }
-
-      List<TaskModel> finalTasks = combinedTasksMap.values.toList();
-
-      // Sort: newest first
-      // We sort session-created tasks to the top if they have high IDs
-      finalTasks.sort((a, b) {
-        int dateComp = b.date.compareTo(a.date);
-        if (dateComp != 0) return dateComp;
-        return b.id.compareTo(a.id);
-      });
-
-      _tasks = finalTasks;
+      _tasks = querySnapshot.docs.map((doc) {
+        return TaskModel.fromJson(doc.data());
+      }).toList();
     } catch (e) {
-      _errorMessage = 'Local sync error: ${e.toString()}';
-      // In case of error, at least show session tasks
-      _tasks = [..._sessionCreatedTasks];
+      _errorMessage = 'Cloud sync error: ${e.toString()}';
+      debugPrint('Fetch tasks error: $e');
     }
 
     _isLoading = false;
     notifyListeners();
   }
 
-  // Create task
+  // Create task in Firestore
   Future<bool> createTask(String token, TaskModel task) async {
-    // API returns success for mock, but we need to update locally
+    final user = _auth.currentUser;
+    if (user == null) return false;
+
     try {
-      final success = await _apiService.createTask(token, task);
+      final now = DateTime.now();
+      final mockId = now.millisecondsSinceEpoch;
+      final dayName = DateFormat('EEEE').format(now);
+      final dateStr = DateFormat('yyyy-MM-dd').format(now);
 
-      if (success) {
-        final now = DateTime.now();
-        // Generate a pseudo-unique ID for session
-        final mockId = DateTime.now().millisecondsSinceEpoch;
-        final dayName = DateFormat('EEEE').format(now);
-        final dateStr = DateFormat('yyyy-MM-dd').format(now);
+      final newTask = task.copyWith(
+        id: mockId,
+        dayName: dayName,
+        date: dateStr,
+      );
 
-        final newTask = task.copyWith(
-          id: mockId,
-          dayName: dayName,
-          date: dateStr,
-        );
+      final taskData = newTask.toJson();
+      taskData['userId'] = user.uid;
+      taskData['createdAt'] = FieldValue.serverTimestamp();
 
-        _sessionCreatedTasks.add(newTask);
+      await _firestore.collection('tasks').doc(mockId.toString()).set(taskData);
 
-        // Refresh local list immediately
-        await fetchTasks(token);
-        return true;
-      } else {
-        _errorMessage = 'Failed to create task';
-        notifyListeners();
-        return false;
-      }
+      // Refresh local list
+      await fetchTasks(token);
+      return true;
     } catch (e) {
       _errorMessage = 'Error: ${e.toString()}';
       notifyListeners();
@@ -118,7 +82,7 @@ class TaskProvider extends ChangeNotifier {
     }
   }
 
-  // Update task
+  // Update task in Firestore
   Future<bool> updateTask(
     String token,
     int taskId, {
@@ -126,76 +90,50 @@ class TaskProvider extends ChangeNotifier {
     String? description,
   }) async {
     try {
-      final success = await _apiService.updateTask(
-        token,
-        taskId,
-        status: status,
-        description: description,
-      );
+      final updateData = <String, dynamic>{};
+      if (status != null) updateData['status'] = status;
+      if (description != null) updateData['description'] = description;
+      updateData['updatedAt'] = FieldValue.serverTimestamp();
 
-      if (success) {
-        // Find existing task
-        final index = _tasks.indexWhere((t) => t.id == taskId);
-        if (index != -1) {
-          final updatedTask = _tasks[index].copyWith(
-            status: status ?? _tasks[index].status,
-            description: description ?? _tasks[index].description,
-          );
+      await _firestore
+          .collection('tasks')
+          .doc(taskId.toString())
+          .update(updateData);
 
-          // Store in session updates
-          _sessionUpdatedTasks[taskId] = updatedTask;
-
-          // If it was a newly created task, update it there too
-          final createdIndex = _sessionCreatedTasks.indexWhere(
-            (t) => t.id == taskId,
-          );
-          if (createdIndex != -1) {
-            _sessionCreatedTasks[createdIndex] = updatedTask;
-          }
-
-          // Update local list
-          _tasks[index] = updatedTask;
-          notifyListeners();
-        }
-        return true;
+      // Update local list for immediate UI feedback
+      final index = _tasks.indexWhere((t) => t.id == taskId);
+      if (index != -1) {
+        _tasks[index] = _tasks[index].copyWith(
+          status: status ?? _tasks[index].status,
+          description: description ?? _tasks[index].description,
+        );
+        notifyListeners();
       }
-      return false;
+      return true;
     } catch (e) {
+      debugPrint('Update task error: $e');
       return false;
     }
   }
 
-  // Delete task
+  // Delete task from Firestore
   Future<bool> deleteTask(String token, int taskId) async {
     try {
-      final success = await _apiService.deleteTask(token, taskId);
+      await _firestore.collection('tasks').doc(taskId.toString()).delete();
 
-      if (success) {
-        // Track deletion
-        _sessionDeletedTaskIds.add(taskId);
-        _sessionCreatedTasks.removeWhere((t) => t.id == taskId);
-        _sessionUpdatedTasks.remove(taskId);
-
-        // Remove from local list
-        _tasks.removeWhere((t) => t.id == taskId);
-        notifyListeners();
-        return true;
-      }
-      return false;
+      // Remove from local list
+      _tasks.removeWhere((t) => t.id == taskId);
+      notifyListeners();
+      return true;
     } catch (e) {
+      debugPrint('Delete task error: $e');
       return false;
     }
   }
 
-  // Clear error
-  void clearError() {
-    _errorMessage = null;
+  // Reset for logout
+  void clearSession() {
+    _tasks = [];
     notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    _apiService.dispose();
-    super.dispose();
   }
 }
