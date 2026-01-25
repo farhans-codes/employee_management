@@ -34,9 +34,19 @@ class ApiService {
       final headers = _getHeaders();
       if (ApiConstants.baseUrl.contains('mock.pstmn.io')) {
         if (employeeId == 'L3T2077') {
-          headers['x-mock-response-name'] = 'Success - Employee 1';
+          if (password == 'password123') {
+            headers['x-mock-response-name'] = 'Success - Employee 1';
+          } else {
+            headers['x-mock-response-name'] = 'Login Failed';
+          }
         } else if (employeeId == 'L3T2088') {
-          headers['x-mock-response-name'] = 'Success - Employee 2';
+          if (password == 'password456') {
+            headers['x-mock-response-name'] = 'Success - Employee 2';
+          } else {
+            headers['x-mock-response-name'] = 'Login Failed';
+          }
+        } else {
+          headers['x-mock-response-name'] = 'Login Failed';
         }
       }
 
@@ -134,12 +144,24 @@ class ApiService {
     int limit = 10,
   }) async {
     try {
-      final response = await _client.get(
-        Uri.parse(
-          '${ApiConstants.baseUrl}${ApiConstants.tasks}?page=$page&limit=$limit',
-        ),
-        headers: _getHeaders(token: token),
+      final url = Uri.parse(
+        '${ApiConstants.baseUrl}${ApiConstants.tasks}?page=$page&limit=$limit',
       );
+
+      // Special handling for Postman Mock Server
+      final headers = _getHeaders(token: token);
+      if (ApiConstants.baseUrl.contains('mock.pstmn.io')) {
+        if (token == 'mock_jwt_token_kaniz_xyz123') {
+          headers['x-mock-response-name'] = 'Task List - Employee 1 (Kaniz)';
+        } else if (token == 'mock_jwt_token_rahim_abc456') {
+          headers['x-mock-response-name'] = 'Task List - Employee 2 (Rahim)';
+        } else {
+          // Fallback to avoid empty lists if token is different
+          headers['x-mock-response-name'] = 'Task List - Employee 1 (Kaniz)';
+        }
+      }
+
+      final response = await _client.get(url, headers: headers);
 
       final data = jsonDecode(response.body);
       return TaskListResponse.fromJson(data);

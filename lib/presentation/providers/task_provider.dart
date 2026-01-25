@@ -33,40 +33,49 @@ class TaskProvider extends ChangeNotifier {
         limit: limit,
       );
 
+      List<TaskModel> apiTasks = [];
       if (response.success) {
-        List<TaskModel> apiTasks = response.data;
-
-        // Apply session deletions
-        apiTasks.removeWhere((t) => _sessionDeletedTaskIds.contains(t.id));
-
-        // Apply session updates to existing tasks
-        for (int i = 0; i < apiTasks.length; i++) {
-          if (_sessionUpdatedTasks.containsKey(apiTasks[i].id)) {
-            apiTasks[i] = _sessionUpdatedTasks[apiTasks[i].id]!;
-          }
-        }
-
-        // Add session created tasks (check for duplicates just in case)
-        for (var newTask in _sessionCreatedTasks) {
-          if (!apiTasks.any((t) => t.id == newTask.id)) {
-            apiTasks.add(newTask);
-          }
-        }
-
-        // Sort: newest first (assuming ID represents order or we can sort by date)
-        // For now, let's sort by date descending, then ID descending
-        apiTasks.sort((a, b) {
-          int dateComp = b.date.compareTo(a.date);
-          if (dateComp != 0) return dateComp;
-          return b.id.compareTo(a.id);
-        });
-
-        _tasks = apiTasks;
+        apiTasks = response.data;
       } else {
-        _errorMessage = 'Failed to fetch tasks';
+        // Log error but don't clear the list if we have session tasks
+        _errorMessage = 'Note: Using local data as server sync failed';
       }
+
+      // Apply session deletions
+      apiTasks.removeWhere((t) => _sessionDeletedTaskIds.contains(t.id));
+
+      // Use a map to track combined list for easier updating/merging
+      Map<int, TaskModel> combinedTasksMap = {for (var t in apiTasks) t.id: t};
+
+      // Add back session-updated tasks
+      _sessionUpdatedTasks.forEach((id, task) {
+        if (!_sessionDeletedTaskIds.contains(id)) {
+          combinedTasksMap[id] = task;
+        }
+      });
+
+      // Add session-created tasks
+      for (var newTask in _sessionCreatedTasks) {
+        if (!_sessionDeletedTaskIds.contains(newTask.id)) {
+          combinedTasksMap[newTask.id] = newTask;
+        }
+      }
+
+      List<TaskModel> finalTasks = combinedTasksMap.values.toList();
+
+      // Sort: newest first
+      // We sort session-created tasks to the top if they have high IDs
+      finalTasks.sort((a, b) {
+        int dateComp = b.date.compareTo(a.date);
+        if (dateComp != 0) return dateComp;
+        return b.id.compareTo(a.id);
+      });
+
+      _tasks = finalTasks;
     } catch (e) {
-      _errorMessage = 'Error: ${e.toString()}';
+      _errorMessage = 'Local sync error: ${e.toString()}';
+      // In case of error, at least show session tasks
+      _tasks = [..._sessionCreatedTasks];
     }
 
     _isLoading = false;

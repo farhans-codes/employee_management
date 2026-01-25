@@ -92,6 +92,7 @@ class _HomePageState extends State<HomePage> {
         final displayId = profile?.employeeId ?? user?.id ?? 'ID';
 
         return Scaffold(
+          backgroundColor: Colors.grey[100],
           appBar: AppBar(
             backgroundColor: const Color(0xFF0d4f9d),
             elevation: 0,
@@ -149,175 +150,171 @@ class _HomePageState extends State<HomePage> {
           ),
           body: Stack(
             children: [
-              Container(
-                color: Colors.grey[100],
-                child: SingleChildScrollView(
-                  controller: _scrollController,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Attendance Section
-                        const AttendanceSection(),
-                        const SizedBox(height: 16),
-                        // Daily Task List Header
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  child: const Icon(
-                                    Icons.fact_check,
-                                    size: 30,
-                                    color: Color(0xFF0d4f9d),
-                                  ),
+              SingleChildScrollView(
+                controller: _scrollController,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Attendance Section
+                      const AttendanceSection(),
+                      const SizedBox(height: 16),
+                      // Daily Task List Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                child: const Icon(
+                                  Icons.fact_check,
+                                  size: 30,
+                                  color: Color(0xFF0d4f9d),
                                 ),
-                                const Text(
-                                  'Daily Task List',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Container(
-                              height: 30,
-                              width: 30,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF0d4f9d),
-                                borderRadius: BorderRadius.circular(10),
                               ),
-                              child: IconButton(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                onPressed: () {
+                              const Text(
+                                'Daily Task List',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            height: 30,
+                            width: 30,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0d4f9d),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) =>
+                                      const CreateTaskDialog(),
+                                );
+                              },
+                              icon: const Icon(
+                                Icons.add_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              tooltip: 'Add Task',
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Task Cards - from API or loading state
+                      if (taskProvider.isLoading && taskProvider.tasks.isEmpty)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(32),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      else if (taskProvider.tasks.isEmpty)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(32),
+                            child: Text('No tasks found'),
+                          ),
+                        )
+                      else
+                        ...taskProvider.tasks
+                            .take(3)
+                            .map(
+                              (task) => TaskCard(
+                                key: ValueKey(task.id),
+                                taskId: task.id,
+                                time: task.timeSlot,
+                                projectName: task.description,
+                                initialStatus: task.status == 'Complete'
+                                    ? 'Completed'
+                                    : task.status,
+                                onEdit: () {
                                   showDialog(
                                     context: context,
-                                    builder: (context) =>
-                                        const CreateTaskDialog(),
+                                    builder: (context) => CreateTaskDialog(
+                                      isEditing: true,
+                                      taskId: task.id,
+                                      initialTimeSlot: task.timeSlot,
+                                      initialStatus: task.status == 'Complete'
+                                          ? 'Completed'
+                                          : task.status,
+                                      initialDescription: task.description,
+                                    ),
                                   );
                                 },
-                                icon: const Icon(
-                                  Icons.add_rounded,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                                tooltip: 'Add Task',
                               ),
                             ),
-                          ],
-                        ),
-
-                        // Task Cards - from API or loading state
-                        if (taskProvider.isLoading &&
-                            taskProvider.tasks.isEmpty)
-                          const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(32),
-                              child: CircularProgressIndicator(),
-                            ),
-                          )
-                        else if (taskProvider.tasks.isEmpty)
-                          const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(32),
-                              child: Text('No tasks found'),
-                            ),
-                          )
-                        else
-                          ...taskProvider.tasks
-                              .take(3)
-                              .map(
-                                (task) => TaskCard(
-                                  key: ValueKey(task.id),
-                                  taskId: task.id,
-                                  time: task.timeSlot,
-                                  projectName: task.description,
-                                  initialStatus: task.status == 'Complete'
-                                      ? 'Completed'
-                                      : task.status,
-                                  onEdit: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) => CreateTaskDialog(
-                                        isEditing: true,
-                                        taskId: task.id,
-                                        initialTimeSlot: task.timeSlot,
-                                        initialStatus: task.status == 'Complete'
-                                            ? 'Completed'
-                                            : task.status,
-                                        initialDescription: task.description,
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                        const SizedBox(height: 25),
-                      ],
-                    ),
+                      const SizedBox(height: 80), // Space for bottom button
+                    ],
                   ),
                 ),
               ),
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 300),
-                left: 0,
-                right: 0,
-                bottom: _isButtonVisible ? 0 : -100,
-                child: ClipRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.0),
-                            Colors.grey.shade400.withValues(alpha: 0.9),
-                          ],
-                        ),
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const TaskListPage(),
-                              ),
-                            );
-                          },
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'View Full Task',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              SizedBox(width: 8),
-                              Icon(
-                                Icons.arrow_forward_rounded,
-                                color: Colors.black,
-                                size: 20,
-                              ),
+              if (taskProvider.tasks.isNotEmpty)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.0),
+                              Colors.grey.shade400.withValues(alpha: 0.9),
                             ],
+                          ),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const TaskListPage(),
+                                ),
+                              );
+                            },
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'View Full Task',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Icon(
+                                  Icons.arrow_forward_rounded,
+                                  color: Colors.black,
+                                  size: 20,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         );
