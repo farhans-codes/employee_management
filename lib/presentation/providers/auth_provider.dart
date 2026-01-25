@@ -83,7 +83,9 @@ class AuthProvider extends ChangeNotifier {
       'role': isKaniz ? 'Senior Executive' : 'Software Engineer',
       'department': 'Operations',
       'location': 'Dhaka, Bangladesh',
-      'profile_image': '',
+      'profile_image': isKaniz
+          ? 'https://ui-avatars.com/api/?name=Kaniz+Fatima&background=0D8ABC&color=fff&size=150'
+          : 'https://ui-avatars.com/api/?name=Rahim+Uddin&background=5D4037&color=fff&size=150',
       'personal_details': {
         'joining_date': '2024-01-01',
         'confirmation_date': '2024-04-01',

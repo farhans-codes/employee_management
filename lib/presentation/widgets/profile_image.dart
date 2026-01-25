@@ -41,7 +41,14 @@ class CustomProfileImage extends StatelessWidget {
           width: size,
           height: size,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _buildPlaceholder(),
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return _buildPlaceholder();
+          },
+          errorBuilder: (context, error, stackTrace) {
+            debugPrint('Image load error: $error');
+            return _buildPlaceholder();
+          },
         ),
       );
     } catch (e) {
