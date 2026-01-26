@@ -76,12 +76,26 @@ class AttendanceProvider extends ChangeNotifier {
     final user = _auth.currentUser;
     if (user == null) return false;
 
-    try {
-      final now = DateTime.now();
-      final dateStr = DateFormat('yyyy-MM-dd').format(now);
-      final timeStr = DateFormat('hh:mm a').format(now);
-      final dayName = DateFormat('EEEE').format(now);
+    final now = DateTime.now();
+    final dateStr = DateFormat('yyyy-MM-dd').format(now);
+    final timeStr = DateFormat('hh:mm a').format(now);
+    final dayName = DateFormat('EEEE').format(now);
 
+    // Optimistic Update: Add to local state first
+    final optimisticEntry = AttendanceModel(
+      date: dateStr,
+      dayName: dayName,
+      inTime: timeStr,
+      outTime: '-',
+      status: 'Present',
+      workType: workType,
+    );
+
+    final originalAttendances = List<AttendanceModel>.from(_attendances);
+    _attendances.insert(0, optimisticEntry);
+    notifyListeners();
+
+    try {
       final attendanceData = {
         'userId': user.uid,
         'date': dateStr,
@@ -99,10 +113,14 @@ class AttendanceProvider extends ChangeNotifier {
           .doc("${user.uid}_$dateStr")
           .set(attendanceData);
 
-      await fetchAttendance();
+      // Re-fetch in background to sync properly (especially meta)
+      fetchAttendance();
       return true;
     } catch (e) {
       debugPrint('Check-in error: $e');
+      // Rollback on error
+      _attendances = originalAttendances;
+      notifyListeners();
       return false;
     }
   }
@@ -112,11 +130,28 @@ class AttendanceProvider extends ChangeNotifier {
     final user = _auth.currentUser;
     if (user == null) return false;
 
-    try {
-      final now = DateTime.now();
-      final dateStr = DateFormat('yyyy-MM-dd').format(now);
-      final timeStr = DateFormat('hh:mm a').format(now);
+    final now = DateTime.now();
+    final dateStr = DateFormat('yyyy-MM-dd').format(now);
+    final timeStr = DateFormat('hh:mm a').format(now);
 
+    // Optimistic Update: Find and update local record
+    final originalAttendances = List<AttendanceModel>.from(_attendances);
+    final index = _attendances.indexWhere((a) => a.date == dateStr);
+
+    if (index != -1) {
+      final current = _attendances[index];
+      _attendances[index] = AttendanceModel(
+        date: current.date,
+        dayName: current.dayName,
+        inTime: current.inTime,
+        outTime: timeStr,
+        status: current.status,
+        workType: current.workType,
+      );
+      notifyListeners();
+    }
+
+    try {
       final attendanceDocRef = _firestore
           .collection('attendance')
           .doc("${user.uid}_$dateStr");
@@ -129,12 +164,20 @@ class AttendanceProvider extends ChangeNotifier {
           'updatedAt': FieldValue.serverTimestamp(),
         });
 
-        await fetchAttendance();
+        // Re-fetch in background to sync properly
+        fetchAttendance();
         return true;
+      } else {
+        // If doc doesn't exist, we can't check out. Rollback and return false.
+        _attendances = originalAttendances;
+        notifyListeners();
+        return false;
       }
-      return false;
     } catch (e) {
       debugPrint('Check-out error: $e');
+      // Rollback on error
+      _attendances = originalAttendances;
+      notifyListeners();
       return false;
     }
   }

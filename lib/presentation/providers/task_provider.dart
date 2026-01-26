@@ -54,29 +54,38 @@ class TaskProvider extends ChangeNotifier {
     final user = _auth.currentUser;
     if (user == null) return false;
 
+    final now = DateTime.now();
+    final mockId = now.millisecondsSinceEpoch;
+    final dayName = DateFormat('EEEE').format(now);
+    final dateStr = DateFormat('yyyy-MM-dd').format(now);
+
+    final newTask = task.copyWith(id: mockId, dayName: dayName, date: dateStr);
+
+    // Optimistic Update: Add to local state first
+    final originalTasks = List<TaskModel>.from(_tasks);
+    _tasks.insert(0, newTask);
+    // Note: If you want to keep sorting, you might want to call a sort method here
+    _tasks.sort((a, b) {
+      int dateCmp = b.date.compareTo(a.date);
+      if (dateCmp != 0) return dateCmp;
+      return b.id.compareTo(a.id);
+    });
+    notifyListeners();
+
     try {
-      final now = DateTime.now();
-      final mockId = now.millisecondsSinceEpoch;
-      final dayName = DateFormat('EEEE').format(now);
-      final dateStr = DateFormat('yyyy-MM-dd').format(now);
-
-      final newTask = task.copyWith(
-        id: mockId,
-        dayName: dayName,
-        date: dateStr,
-      );
-
       final taskData = newTask.toJson();
       taskData['userId'] = user.uid;
       taskData['createdAt'] = FieldValue.serverTimestamp();
 
       await _firestore.collection('tasks').doc(mockId.toString()).set(taskData);
 
-      // Refresh local list
-      await fetchTasks();
+      // Optionally refresh in background to sync exactly with server state
+      fetchTasks();
       return true;
     } catch (e) {
       _errorMessage = 'Error: ${e.toString()}';
+      // Rollback on error
+      _tasks = originalTasks;
       notifyListeners();
       return false;
     }
@@ -88,6 +97,17 @@ class TaskProvider extends ChangeNotifier {
     String? status,
     String? description,
   }) async {
+    final originalTasks = List<TaskModel>.from(_tasks);
+    final index = _tasks.indexWhere((t) => t.id == taskId);
+
+    if (index != -1) {
+      _tasks[index] = _tasks[index].copyWith(
+        status: status ?? _tasks[index].status,
+        description: description ?? _tasks[index].description,
+      );
+      notifyListeners();
+    }
+
     try {
       final updateData = <String, dynamic>{};
       if (status != null) updateData['status'] = status;
@@ -99,19 +119,12 @@ class TaskProvider extends ChangeNotifier {
           .doc(taskId.toString())
           .update(updateData);
 
-      // Update local list for immediate UI feedback
-      final index = _tasks.indexWhere((t) => t.id == taskId);
-      if (index != -1) {
-        _tasks[index] = _tasks[index].copyWith(
-          status: status ?? _tasks[index].status,
-          description: description ?? _tasks[index].description,
-        );
-        notifyListeners();
-      }
       return true;
     } catch (e) {
       _errorMessage = 'Update error: ${e.toString()}';
       debugPrint('Update task error: $e');
+      // Rollback
+      _tasks = originalTasks;
       notifyListeners();
       return false;
     }
@@ -119,16 +132,18 @@ class TaskProvider extends ChangeNotifier {
 
   // Delete task from Firestore
   Future<bool> deleteTask(int taskId) async {
+    final originalTasks = List<TaskModel>.from(_tasks);
+    _tasks.removeWhere((t) => t.id == taskId);
+    notifyListeners();
+
     try {
       await _firestore.collection('tasks').doc(taskId.toString()).delete();
-
-      // Remove from local list
-      _tasks.removeWhere((t) => t.id == taskId);
-      notifyListeners();
       return true;
     } catch (e) {
       _errorMessage = 'Delete error: ${e.toString()}';
       debugPrint('Delete task error: $e');
+      // Rollback
+      _tasks = originalTasks;
       notifyListeners();
       return false;
     }
