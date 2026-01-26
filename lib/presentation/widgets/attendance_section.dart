@@ -28,8 +28,8 @@ class _AttendanceSectionState extends State<AttendanceSection> {
       context,
       listen: false,
     );
-    if (authProvider.token != null) {
-      attendanceProvider.fetchAttendance(authProvider.token!);
+    if (authProvider.isLoggedIn) {
+      attendanceProvider.fetchAttendance();
     }
   }
 
@@ -40,16 +40,13 @@ class _AttendanceSectionState extends State<AttendanceSection> {
       listen: false,
     );
 
-    if (authProvider.token == null) return;
+    if (!authProvider.isLoggedIn) return;
 
     bool success = false;
     if (action == 'In') {
-      success = await attendanceProvider.checkIn(
-        authProvider.token!,
-        selectedTab,
-      );
+      success = await attendanceProvider.checkIn(selectedTab);
     } else {
-      success = await attendanceProvider.checkOut(authProvider.token!);
+      success = await attendanceProvider.checkOut();
     }
 
     if (mounted) {

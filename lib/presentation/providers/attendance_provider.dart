@@ -19,7 +19,7 @@ class AttendanceProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   // Fetch attendance from Firestore
-  Future<void> fetchAttendance(String token, {int? month, int? year}) async {
+  Future<void> fetchAttendance({int? month, int? year}) async {
     final user = _auth.currentUser;
     if (user == null) return;
 
@@ -72,7 +72,7 @@ class AttendanceProvider extends ChangeNotifier {
   }
 
   // Check In
-  Future<bool> checkIn(String token, String workType) async {
+  Future<bool> checkIn(String workType) async {
     final user = _auth.currentUser;
     if (user == null) return false;
 
@@ -99,7 +99,7 @@ class AttendanceProvider extends ChangeNotifier {
           .doc("${user.uid}_$dateStr")
           .set(attendanceData);
 
-      await fetchAttendance(token);
+      await fetchAttendance();
       return true;
     } catch (e) {
       debugPrint('Check-in error: $e');
@@ -108,7 +108,7 @@ class AttendanceProvider extends ChangeNotifier {
   }
 
   // Check Out
-  Future<bool> checkOut(String token) async {
+  Future<bool> checkOut() async {
     final user = _auth.currentUser;
     if (user == null) return false;
 
@@ -129,7 +129,7 @@ class AttendanceProvider extends ChangeNotifier {
           'updatedAt': FieldValue.serverTimestamp(),
         });
 
-        await fetchAttendance(token);
+        await fetchAttendance();
         return true;
       }
       return false;

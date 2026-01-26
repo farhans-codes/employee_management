@@ -24,8 +24,8 @@ class _TaskListPageState extends State<TaskListPage> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final taskProvider = Provider.of<TaskProvider>(context, listen: false);
 
-    if (authProvider.token != null) {
-      taskProvider.fetchTasks(authProvider.token!);
+    if (authProvider.isLoggedIn) {
+      taskProvider.fetchTasks();
     }
   }
 
@@ -162,11 +162,8 @@ class TaskListCard extends StatelessWidget {
                   listen: false,
                 );
 
-                if (authProvider.token != null) {
-                  final success = await taskProvider.deleteTask(
-                    authProvider.token!,
-                    taskId,
-                  );
+                if (authProvider.isLoggedIn) {
+                  final success = await taskProvider.deleteTask(taskId);
 
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

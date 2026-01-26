@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
 import '../providers/task_provider.dart';
 
 class TaskCard extends StatefulWidget {
@@ -66,11 +65,9 @@ class _TaskCardState extends State<TaskCard> {
 
     setState(() => isUpdating = true);
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final taskProvider = Provider.of<TaskProvider>(context, listen: false);
 
     final success = await taskProvider.updateTask(
-      authProvider.token!,
       widget.taskId,
       status: newStatus,
     );

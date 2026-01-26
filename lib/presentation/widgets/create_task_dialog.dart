@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
-import '../providers/auth_provider.dart';
 import '../providers/task_provider.dart';
 import '../../../data/models/task_model.dart';
 
@@ -80,47 +79,58 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
     }
 
     setState(() => isProcessing = true);
-
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final taskProvider = Provider.of<TaskProvider>(context, listen: false);
 
-    bool success = false;
-    if (widget.isEditing && widget.taskId != null) {
-      success = await taskProvider.updateTask(
-        authProvider.token!,
-        widget.taskId!,
-        status: selectedStatus,
-        description: description,
-      );
-    } else {
-      final task = TaskModel(
-        id: 0, // Server or provider will assign
-        dayName: '', // Provider will assign
-        date: '', // Provider will assign
-        timeSlot: selectedTimeSlot!,
-        status: selectedStatus!,
-        description: description,
-      );
-      success = await taskProvider.createTask(authProvider.token!, task);
-    }
-
-    if (mounted) {
-      setState(() => isProcessing = false);
-      if (success) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(widget.isEditing ? 'Task updated' : 'Task created'),
-            backgroundColor: Colors.green,
-          ),
+    try {
+      bool success = false;
+      if (widget.isEditing && widget.taskId != null) {
+        success = await taskProvider.updateTask(
+          widget.taskId!,
+          status: selectedStatus,
+          description: description,
         );
       } else {
+        final task = TaskModel(
+          id: 0, // Server or provider will assign
+          dayName: '', // Provider will assign
+          date: '', // Provider will assign
+          timeSlot: selectedTimeSlot!,
+          status: selectedStatus!,
+          description: description,
+        );
+        success = await taskProvider.createTask(task);
+      }
+
+      if (mounted) {
+        if (success) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(widget.isEditing ? 'Task updated' : 'Task created'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(taskProvider.errorMessage ?? 'Operation failed'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(taskProvider.errorMessage ?? 'Operation failed'),
+            content: Text('Error: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isProcessing = false);
       }
     }
   }

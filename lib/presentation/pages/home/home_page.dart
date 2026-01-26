@@ -38,8 +38,8 @@ class _HomePageState extends State<HomePage> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final taskProvider = Provider.of<TaskProvider>(context, listen: false);
 
-    if (authProvider.token != null) {
-      taskProvider.fetchTasks(authProvider.token!);
+    if (authProvider.isLoggedIn) {
+      taskProvider.fetchTasks();
     }
   }
 

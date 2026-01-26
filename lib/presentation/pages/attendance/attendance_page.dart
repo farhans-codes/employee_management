@@ -28,9 +28,8 @@ class _AttendancePageState extends State<AttendancePage> {
       context,
       listen: false,
     );
-    if (authProvider.token != null) {
+    if (authProvider.isLoggedIn) {
       attendanceProvider.fetchAttendance(
-        authProvider.token!,
         month: _selectedDate.month,
         year: _selectedDate.year,
       );

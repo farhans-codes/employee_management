@@ -21,7 +21,7 @@ class TaskProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   // Fetch tasks from Firestore
-  Future<void> fetchTasks(String token, {int page = 1, int limit = 10}) async {
+  Future<void> fetchTasks({int page = 1, int limit = 10}) async {
     final user = _auth.currentUser;
     if (user == null) return;
 
@@ -50,7 +50,7 @@ class TaskProvider extends ChangeNotifier {
   }
 
   // Create task in Firestore
-  Future<bool> createTask(String token, TaskModel task) async {
+  Future<bool> createTask(TaskModel task) async {
     final user = _auth.currentUser;
     if (user == null) return false;
 
@@ -73,7 +73,7 @@ class TaskProvider extends ChangeNotifier {
       await _firestore.collection('tasks').doc(mockId.toString()).set(taskData);
 
       // Refresh local list
-      await fetchTasks(token);
+      await fetchTasks();
       return true;
     } catch (e) {
       _errorMessage = 'Error: ${e.toString()}';
@@ -84,7 +84,6 @@ class TaskProvider extends ChangeNotifier {
 
   // Update task in Firestore
   Future<bool> updateTask(
-    String token,
     int taskId, {
     String? status,
     String? description,
@@ -111,13 +110,15 @@ class TaskProvider extends ChangeNotifier {
       }
       return true;
     } catch (e) {
+      _errorMessage = 'Update error: ${e.toString()}';
       debugPrint('Update task error: $e');
+      notifyListeners();
       return false;
     }
   }
 
   // Delete task from Firestore
-  Future<bool> deleteTask(String token, int taskId) async {
+  Future<bool> deleteTask(int taskId) async {
     try {
       await _firestore.collection('tasks').doc(taskId.toString()).delete();
 
@@ -126,7 +127,9 @@ class TaskProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
+      _errorMessage = 'Delete error: ${e.toString()}';
       debugPrint('Delete task error: $e');
+      notifyListeners();
       return false;
     }
   }
