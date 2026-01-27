@@ -82,18 +82,21 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
     final taskProvider = Provider.of<TaskProvider>(context, listen: false);
 
     try {
+      debugPrint('Starting save operation. isEditing: ${widget.isEditing}');
       bool success = false;
       if (widget.isEditing && widget.taskId != null) {
+        debugPrint('Updating existing task: ${widget.taskId}');
         success = await taskProvider.updateTask(
           widget.taskId!,
           status: selectedStatus,
           description: description,
         );
       } else {
+        debugPrint('Creating new task');
         final task = TaskModel(
-          id: 0, // Server or provider will assign
-          dayName: '', // Provider will assign
-          date: '', // Provider will assign
+          id: 0,
+          dayName: '',
+          date: '',
           timeSlot: selectedTimeSlot!,
           status: selectedStatus!,
           description: description,
@@ -101,8 +104,11 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
         success = await taskProvider.createTask(task);
       }
 
+      debugPrint('Operation success: $success');
+
       if (mounted) {
         if (success) {
+          debugPrint('Success: Popping dialog');
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -111,6 +117,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
             ),
           );
         } else {
+          debugPrint('Failure: ${taskProvider.errorMessage}');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(taskProvider.errorMessage ?? 'Operation failed'),
@@ -120,6 +127,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
         }
       }
     } catch (e) {
+      debugPrint('Exception in _handleSave: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -131,6 +139,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
     } finally {
       if (mounted) {
         setState(() => isProcessing = false);
+        debugPrint('isProcessing set to false');
       }
     }
   }

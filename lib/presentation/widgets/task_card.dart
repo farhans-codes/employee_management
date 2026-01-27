@@ -63,33 +63,54 @@ class _TaskCardState extends State<TaskCard> {
   Future<void> _updateStatus(String newStatus) async {
     if (newStatus == currentStatus) return;
 
+    debugPrint('Updating task ${widget.taskId} status to: $newStatus');
     setState(() => isUpdating = true);
 
-    final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+    try {
+      final taskProvider = Provider.of<TaskProvider>(context, listen: false);
 
-    final success = await taskProvider.updateTask(
-      widget.taskId,
-      status: newStatus,
-    );
+      final success = await taskProvider.updateTask(
+        widget.taskId,
+        status: newStatus,
+      );
 
-    if (mounted) {
-      setState(() => isUpdating = false);
-      if (success) {
-        setState(() => currentStatus = newStatus);
+      debugPrint('Update task result: $success');
+
+      if (mounted) {
+        if (success) {
+          setState(() {
+            currentStatus = newStatus;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Status updated to $newStatus'),
+              duration: const Duration(seconds: 1),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to update status'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error updating status: $e');
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Status updated to $newStatus'),
-            duration: const Duration(seconds: 1),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to update status'),
+            content: Text('Error: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isUpdating = false);
+        debugPrint('Task ${widget.taskId} isUpdating set to false');
       }
     }
   }

@@ -11,6 +11,8 @@ class TaskProvider extends ChangeNotifier {
   List<TaskModel> _tasks = [];
   bool _isLoading = false;
   String? _errorMessage;
+  final bool _useMock =
+      true; // TOGGLE THIS TO SWITCH BETWEEN MOCK AND REAL BACKEND
 
   // Track session changes is no longer needed as Firestore provides persistence
   // but we keep the getters for UI compatibility
@@ -30,6 +32,52 @@ class TaskProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      if (_useMock) {
+        // Mock data
+        await Future.delayed(const Duration(milliseconds: 800));
+        _tasks = [
+          TaskModel(
+            id: 1,
+            dayName: 'Monday',
+            date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+            timeSlot: '09:00 AM - 10:00 AM',
+            status: 'In Progress',
+            description: 'Working on login screen UI',
+          ),
+          TaskModel(
+            id: 2,
+            dayName: 'Monday',
+            date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+            timeSlot: '10:00 AM - 11:00 AM',
+            status: 'Completed',
+            description: 'Team meeting',
+          ),
+          TaskModel(
+            id: 3,
+            dayName: 'Tuesday',
+            date: DateFormat(
+              'yyyy-MM-dd',
+            ).format(DateTime.now().add(const Duration(days: 1))),
+            timeSlot: '02:00 PM - 04:00 PM',
+            status: 'Next',
+            description: 'Database schema design',
+          ),
+          TaskModel(
+            id: 4,
+            dayName: 'Wednesday',
+            date: DateFormat(
+              'yyyy-MM-dd',
+            ).format(DateTime.now().add(const Duration(days: 2))),
+            timeSlot: '11:00 AM - 12:00 PM',
+            status: 'Blocking',
+            description: 'Waiting for API specs',
+          ),
+        ];
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+
       final querySnapshot = await _firestore
           .collection('tasks')
           .where('userId', isEqualTo: user.uid)
@@ -73,16 +121,30 @@ class TaskProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      if (_useMock) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        debugPrint('Mock: Created task ${mockId.toString()}');
+        return true;
+      }
+
+      debugPrint('Firestore: Setting task ${mockId.toString()}');
       final taskData = newTask.toJson();
       taskData['userId'] = user.uid;
       taskData['createdAt'] = FieldValue.serverTimestamp();
 
-      await _firestore.collection('tasks').doc(mockId.toString()).set(taskData);
+      await _firestore
+          .collection('tasks')
+          .doc(mockId.toString())
+          .set(taskData)
+          .timeout(const Duration(seconds: 10));
+
+      debugPrint('Firestore: Set success');
 
       // Optionally refresh in background to sync exactly with server state
       fetchTasks();
       return true;
     } catch (e) {
+      debugPrint('Firestore Error (createTask): $e');
       _errorMessage = 'Error: ${e.toString()}';
       // Rollback on error
       _tasks = originalTasks;
@@ -109,6 +171,13 @@ class TaskProvider extends ChangeNotifier {
     }
 
     try {
+      if (_useMock) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        debugPrint('Mock: Updated task ${taskId.toString()}');
+        return true;
+      }
+
+      debugPrint('Firestore: Updating task ${taskId.toString()}');
       final updateData = <String, dynamic>{};
       if (status != null) updateData['status'] = status;
       if (description != null) updateData['description'] = description;
@@ -117,10 +186,13 @@ class TaskProvider extends ChangeNotifier {
       await _firestore
           .collection('tasks')
           .doc(taskId.toString())
-          .update(updateData);
+          .update(updateData)
+          .timeout(const Duration(seconds: 10));
 
+      debugPrint('Firestore: Update success');
       return true;
     } catch (e) {
+      debugPrint('Firestore Error (updateTask): $e');
       _errorMessage = 'Update error: ${e.toString()}';
       debugPrint('Update task error: $e');
       // Rollback
@@ -137,6 +209,12 @@ class TaskProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      if (_useMock) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        debugPrint('Mock: Deleted task ${taskId.toString()}');
+        return true;
+      }
+
       await _firestore.collection('tasks').doc(taskId.toString()).delete();
       return true;
     } catch (e) {
