@@ -6,6 +6,8 @@ import '../../data/models/user_model.dart';
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final bool _useMock =
+      true; // TOGGLE THIS TO SWITCH BETWEEN MOCK AND REAL BACKEND
 
   String? _token;
   LoginUser? _loginUser;
@@ -35,6 +37,31 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      if (_useMock) {
+        await Future.delayed(
+          const Duration(seconds: 1),
+        ); // Simulate network delay
+
+        // Mock success for any credentials in mock mode, or specific ones
+        final isKaniz = employeeId == 'L3T2077';
+
+        // Set mock token
+        _token = 'mock_token_${DateTime.now().millisecondsSinceEpoch}';
+
+        // Set mock profile data directly
+        final mockData = _getMockUserData(employeeId);
+        _userProfile = UserModel.fromJson(mockData);
+        _loginUser = LoginUser(
+          id: _userProfile!.employeeId,
+          name: _userProfile!.name,
+          role: _userProfile!.role,
+        );
+
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+
       // Map employeeId to email for Firebase Auth
       final email = "${employeeId.trim().toLowerCase()}@employee.com";
 
@@ -79,11 +106,11 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Initialize a new profile for mock users
-  Future<void> _initializeMockProfile(String employeeId, String uid) async {
+  // Helper to get mock user data
+  Map<String, dynamic> _getMockUserData(String employeeId) {
     final bool isKaniz = employeeId == 'L3T2077';
 
-    final userData = {
+    return {
       'employee_id': employeeId,
       'name': isKaniz ? 'Kaniz Fatima' : 'Rahim Uddin',
       'designation': isKaniz ? 'Senior Executive' : 'Software Engineer',
@@ -99,7 +126,11 @@ class AuthProvider extends ChangeNotifier {
         'service_length': '1 Year',
       },
     };
+  }
 
+  // Initialize a new profile for mock users
+  Future<void> _initializeMockProfile(String employeeId, String uid) async {
+    final userData = _getMockUserData(employeeId);
     await _firestore.collection('users').doc(uid).set(userData);
   }
 
@@ -109,6 +140,24 @@ class AuthProvider extends ChangeNotifier {
     if (user == null) return;
 
     try {
+      if (_useMock) {
+        // In mock mode, we assume the user is L3T2077 for demonstration if not set
+        // Or if we have a way to persist the ID between restarts, we'd use that.
+        // For now, let's default to Kaniz Fatima (L3T2077) if _userProfile is null
+
+        if (_userProfile == null) {
+          final mockData = _getMockUserData('L3T2077');
+          _userProfile = UserModel.fromJson(mockData);
+          _loginUser = LoginUser(
+            id: _userProfile!.employeeId,
+            name: _userProfile!.name,
+            role: _userProfile!.role,
+          );
+          notifyListeners();
+        }
+        return;
+      }
+
       final doc = await _firestore.collection('users').doc(user.uid).get();
       if (doc.exists) {
         final data = doc.data()!;

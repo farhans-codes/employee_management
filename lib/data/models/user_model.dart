@@ -5,6 +5,7 @@ class UserModel {
   final String profileImage;
   final String department;
   final String location;
+  final String role;
   final PersonalDetails personalDetails;
 
   UserModel({
@@ -14,6 +15,7 @@ class UserModel {
     required this.profileImage,
     required this.department,
     required this.location,
+    required this.role,
     required this.personalDetails,
   });
 
@@ -25,6 +27,7 @@ class UserModel {
       profileImage: json['profile_image'] ?? '',
       department: json['department'] ?? '',
       location: json['location'] ?? '',
+      role: json['role'] ?? 'Employee',
       personalDetails: PersonalDetails.fromJson(json['personal_details'] ?? {}),
     );
   }
@@ -37,6 +40,7 @@ class UserModel {
       'profile_image': profileImage,
       'department': department,
       'location': location,
+      'role': role,
       'personal_details': personalDetails.toJson(),
     };
   }
