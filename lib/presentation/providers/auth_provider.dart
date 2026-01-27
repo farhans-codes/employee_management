@@ -21,6 +21,13 @@ class AuthProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isLoggedIn => _auth.currentUser != null;
 
+  // Initialize auth state - call this on app start
+  Future<void> init() async {
+    if (_auth.currentUser != null && _userProfile == null) {
+      await fetchProfile();
+    }
+  }
+
   // Login with Firebase
   Future<bool> login(String employeeId, String password) async {
     _isLoading = true;

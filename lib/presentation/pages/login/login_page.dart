@@ -20,8 +20,25 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AuthProvider>(context, listen: false).clearError();
+      _checkExistingSession();
     });
+  }
+
+  Future<void> _checkExistingSession() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    authProvider.clearError();
+
+    // Check if user is already logged in (Firebase Auth state persisted)
+    if (authProvider.isLoggedIn) {
+      // Fetch profile data if not already loaded
+      await authProvider.init();
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+      }
+    }
   }
 
   @override
