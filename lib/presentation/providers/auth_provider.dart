@@ -42,8 +42,18 @@ class AuthProvider extends ChangeNotifier {
           const Duration(seconds: 1),
         ); // Simulate network delay
 
-        // Mock success for any credentials in mock mode, or specific ones
-        final isKaniz = employeeId == 'L3T2077';
+        // Mock authentication check
+        bool isValid = false;
+
+        if (employeeId == 'L3T2077' && password == 'password123') {
+          isValid = true;
+        } else if (employeeId == 'L3T2088' && password == 'password456') {
+          isValid = true;
+        }
+
+        if (!isValid) {
+          throw 'Invalid Employee ID or Password';
+        }
 
         // Set mock token
         _token = 'mock_token_${DateTime.now().millisecondsSinceEpoch}';
