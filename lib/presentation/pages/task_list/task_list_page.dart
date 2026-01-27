@@ -24,7 +24,8 @@ class _TaskListPageState extends State<TaskListPage> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final taskProvider = Provider.of<TaskProvider>(context, listen: false);
 
-    if (authProvider.isLoggedIn) {
+    if (authProvider.isLoggedIn && authProvider.userProfile != null) {
+      taskProvider.setEmployeeId(authProvider.userProfile!.employeeId);
       taskProvider.fetchTasks();
     }
   }

@@ -1,95 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import '../../data/models/task_model.dart';
 
 class TaskProvider extends ChangeNotifier {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
   List<TaskModel> _tasks = [];
   bool _isLoading = false;
   String? _errorMessage;
-  final bool _useMock =
-      true; // TOGGLE THIS TO SWITCH BETWEEN MOCK AND REAL BACKEND
+  String? _currentEmployeeId;
 
-  // Track session changes is no longer needed as Firestore provides persistence
-  // but we keep the getters for UI compatibility
-
-  // Getters
   List<TaskModel> get tasks => _tasks;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  // Fetch tasks from Firestore
+  void setEmployeeId(String employeeId) {
+    _currentEmployeeId = employeeId;
+  }
+
+  // Fetch tasks from Parse
   Future<void> fetchTasks({int page = 1, int limit = 10}) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
+    if (_currentEmployeeId == null) return;
 
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      if (_useMock) {
-        // Mock data
-        await Future.delayed(const Duration(milliseconds: 800));
-        _tasks = [
-          TaskModel(
-            id: 1,
-            dayName: 'Monday',
-            date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
-            timeSlot: '09:00 AM - 10:00 AM',
-            status: 'In Progress',
-            description: 'Working on login screen UI',
-          ),
-          TaskModel(
-            id: 2,
-            dayName: 'Monday',
-            date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
-            timeSlot: '10:00 AM - 11:00 AM',
-            status: 'Completed',
-            description: 'Team meeting',
-          ),
-          TaskModel(
-            id: 3,
-            dayName: 'Tuesday',
-            date: DateFormat(
-              'yyyy-MM-dd',
-            ).format(DateTime.now().add(const Duration(days: 1))),
-            timeSlot: '02:00 PM - 04:00 PM',
-            status: 'Next',
-            description: 'Database schema design',
-          ),
-          TaskModel(
-            id: 4,
-            dayName: 'Wednesday',
-            date: DateFormat(
-              'yyyy-MM-dd',
-            ).format(DateTime.now().add(const Duration(days: 2))),
-            timeSlot: '11:00 AM - 12:00 PM',
-            status: 'Blocking',
-            description: 'Waiting for API specs',
-          ),
-        ];
-        _isLoading = false;
-        notifyListeners();
-        return;
+      final query = QueryBuilder<ParseObject>(ParseObject('Tasks'))
+        ..whereEqualTo('employee_id', _currentEmployeeId!)
+        ..orderByDescending('date')
+        ..orderByDescending('createdAt');
+
+      final response = await query.query();
+
+      if (response.success && response.results != null) {
+        _tasks = response.results!.map((obj) {
+          final task = obj as ParseObject;
+          return TaskModel(
+            id:
+                int.tryParse(task.objectId ?? '0') ??
+                task.get<int>('task_id') ??
+                0,
+            dayName: task.get<String>('day_name') ?? '',
+            date: task.get<String>('date') ?? '',
+            timeSlot: task.get<String>('time_slot') ?? '',
+            status: task.get<String>('status') ?? '',
+            description: task.get<String>('description') ?? '',
+          );
+        }).toList();
       }
-
-      final querySnapshot = await _firestore
-          .collection('tasks')
-          .where('userId', isEqualTo: user.uid)
-          .orderBy('date', descending: true)
-          .orderBy('id', descending: true)
-          .get();
-
-      _tasks = querySnapshot.docs.map((doc) {
-        return TaskModel.fromJson(doc.data());
-      }).toList();
     } catch (e) {
-      _errorMessage = 'Cloud sync error: ${e.toString()}';
+      _errorMessage = 'Error: ${e.toString()}';
       debugPrint('Fetch tasks error: $e');
     }
 
@@ -97,139 +58,125 @@ class TaskProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Create task in Firestore
+  // Create task in Parse
   Future<bool> createTask(TaskModel task) async {
-    final user = _auth.currentUser;
-    if (user == null) return false;
+    if (_currentEmployeeId == null) return false;
 
     final now = DateTime.now();
-    final mockId = now.millisecondsSinceEpoch;
     final dayName = DateFormat('EEEE').format(now);
     final dateStr = DateFormat('yyyy-MM-dd').format(now);
 
-    final newTask = task.copyWith(id: mockId, dayName: dayName, date: dateStr);
-
-    // Optimistic Update: Add to local state first
-    final originalTasks = List<TaskModel>.from(_tasks);
-    _tasks.insert(0, newTask);
-    // Note: If you want to keep sorting, you might want to call a sort method here
-    _tasks.sort((a, b) {
-      int dateCmp = b.date.compareTo(a.date);
-      if (dateCmp != 0) return dateCmp;
-      return b.id.compareTo(a.id);
-    });
-    notifyListeners();
-
     try {
-      if (_useMock) {
-        await Future.delayed(const Duration(milliseconds: 500));
-        debugPrint('Mock: Created task ${mockId.toString()}');
+      // Generate a unique task_id
+      final taskId = DateTime.now().millisecondsSinceEpoch;
+
+      final taskObject = ParseObject('Tasks')
+        ..set('task_id', taskId)
+        ..set('employee_id', _currentEmployeeId)
+        ..set('day_name', dayName)
+        ..set('date', dateStr)
+        ..set('time_slot', task.timeSlot)
+        ..set('status', task.status)
+        ..set('description', task.description);
+
+      // Set ACL for public access (since we are handling auth manually)
+      final acl = ParseACL();
+      acl.setPublicReadAccess(allowed: true);
+      acl.setPublicWriteAccess(allowed: true);
+      taskObject.setACL(acl);
+
+      final response = await taskObject.save();
+
+      if (response.success) {
+        await fetchTasks(); // Refresh list
         return true;
       }
-
-      debugPrint('Firestore: Setting task ${mockId.toString()}');
-      final taskData = newTask.toJson();
-      taskData['userId'] = user.uid;
-      taskData['createdAt'] = FieldValue.serverTimestamp();
-
-      await _firestore
-          .collection('tasks')
-          .doc(mockId.toString())
-          .set(taskData)
-          .timeout(const Duration(seconds: 10));
-
-      debugPrint('Firestore: Set success');
-
-      // Optionally refresh in background to sync exactly with server state
-      fetchTasks();
-      return true;
+      return false;
     } catch (e) {
-      debugPrint('Firestore Error (createTask): $e');
+      debugPrint('Create task error: $e');
       _errorMessage = 'Error: ${e.toString()}';
-      // Rollback on error
-      _tasks = originalTasks;
       notifyListeners();
       return false;
     }
   }
 
-  // Update task in Firestore
+  // Update task in Parse
   Future<bool> updateTask(
     int taskId, {
     String? status,
     String? description,
   }) async {
-    final originalTasks = List<TaskModel>.from(_tasks);
-    final index = _tasks.indexWhere((t) => t.id == taskId);
-
-    if (index != -1) {
-      _tasks[index] = _tasks[index].copyWith(
-        status: status ?? _tasks[index].status,
-        description: description ?? _tasks[index].description,
-      );
-      notifyListeners();
-    }
-
     try {
-      if (_useMock) {
-        await Future.delayed(const Duration(milliseconds: 500));
-        debugPrint('Mock: Updated task ${taskId.toString()}');
-        return true;
+      // Find the task by task_id or objectId
+      final query = QueryBuilder<ParseObject>(ParseObject('Tasks'))
+        ..whereEqualTo('task_id', taskId);
+
+      final response = await query.query();
+
+      if (response.success &&
+          response.results != null &&
+          response.results!.isNotEmpty) {
+        final taskObject = response.results!.first as ParseObject;
+
+        if (status != null) taskObject.set('status', status);
+        if (description != null) taskObject.set('description', description);
+
+        final saveResponse = await taskObject.save();
+
+        if (saveResponse.success) {
+          // Update local state
+          final index = _tasks.indexWhere((t) => t.id == taskId);
+          if (index != -1) {
+            _tasks[index] = _tasks[index].copyWith(
+              status: status ?? _tasks[index].status,
+              description: description ?? _tasks[index].description,
+            );
+            notifyListeners();
+          }
+          return true;
+        }
       }
-
-      debugPrint('Firestore: Updating task ${taskId.toString()}');
-      final updateData = <String, dynamic>{};
-      if (status != null) updateData['status'] = status;
-      if (description != null) updateData['description'] = description;
-      updateData['updatedAt'] = FieldValue.serverTimestamp();
-
-      await _firestore
-          .collection('tasks')
-          .doc(taskId.toString())
-          .update(updateData)
-          .timeout(const Duration(seconds: 10));
-
-      debugPrint('Firestore: Update success');
-      return true;
+      return false;
     } catch (e) {
-      debugPrint('Firestore Error (updateTask): $e');
-      _errorMessage = 'Update error: ${e.toString()}';
       debugPrint('Update task error: $e');
-      // Rollback
-      _tasks = originalTasks;
+      _errorMessage = 'Error: ${e.toString()}';
       notifyListeners();
       return false;
     }
   }
 
-  // Delete task from Firestore
+  // Delete task from Parse
   Future<bool> deleteTask(int taskId) async {
-    final originalTasks = List<TaskModel>.from(_tasks);
-    _tasks.removeWhere((t) => t.id == taskId);
-    notifyListeners();
-
     try {
-      if (_useMock) {
-        await Future.delayed(const Duration(milliseconds: 500));
-        debugPrint('Mock: Deleted task ${taskId.toString()}');
-        return true;
-      }
+      final query = QueryBuilder<ParseObject>(ParseObject('Tasks'))
+        ..whereEqualTo('task_id', taskId);
 
-      await _firestore.collection('tasks').doc(taskId.toString()).delete();
-      return true;
+      final response = await query.query();
+
+      if (response.success &&
+          response.results != null &&
+          response.results!.isNotEmpty) {
+        final taskObject = response.results!.first as ParseObject;
+        final deleteResponse = await taskObject.delete();
+
+        if (deleteResponse.success) {
+          _tasks.removeWhere((t) => t.id == taskId);
+          notifyListeners();
+          return true;
+        }
+      }
+      return false;
     } catch (e) {
       _errorMessage = 'Delete error: ${e.toString()}';
       debugPrint('Delete task error: $e');
-      // Rollback
-      _tasks = originalTasks;
       notifyListeners();
       return false;
     }
   }
 
-  // Reset for logout
   void clearSession() {
     _tasks = [];
+    _currentEmployeeId = null;
     notifyListeners();
   }
 }

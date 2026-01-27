@@ -1,14 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import '../../data/models/user_model.dart';
 
 class AuthProvider extends ChangeNotifier {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final bool _useMock =
-      true; // TOGGLE THIS TO SWITCH BETWEEN MOCK AND REAL BACKEND
-
   String? _token;
   LoginUser? _loginUser;
   UserModel? _userProfile;
@@ -21,98 +15,147 @@ class AuthProvider extends ChangeNotifier {
   UserModel? get userProfile => _userProfile;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  bool get isLoggedIn => _auth.currentUser != null;
+  bool get isLoggedIn => _token != null;
 
-  // Initialize auth state - call this on app start
+  // Initialize auth state
   Future<void> init() async {
-    if (_auth.currentUser != null && _userProfile == null) {
-      await fetchProfile();
-    }
+    // Check if user session exists
   }
 
-  // Login with Firebase
+  // Login (Simulated - will use Parse Objects for profile)
   Future<bool> login(String employeeId, String password) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      if (_useMock) {
-        await Future.delayed(
-          const Duration(seconds: 1),
-        ); // Simulate network delay
+      // Hardcoded credentials for demo
+      bool isValid = false;
+      if (employeeId == 'L3T2077' && password == 'password123') {
+        isValid = true;
+      } else if (employeeId == 'L3T2088' && password == 'password456') {
+        isValid = true;
+      }
 
-        // Mock authentication check
-        bool isValid = false;
+      if (!isValid) {
+        throw 'Invalid Employee ID or Password';
+      }
 
-        if (employeeId == 'L3T2077' && password == 'password123') {
-          isValid = true;
-        } else if (employeeId == 'L3T2088' && password == 'password456') {
-          isValid = true;
+      // Authenticate with Parse (Anonymous login)
+      ParseUser? currentUser = await ParseUser.currentUser() as ParseUser?;
+
+      // If no user or previous session is invalid (checked via simple query or just blindly login)
+      if (currentUser == null) {
+        final user = ParseUser(null, null, null);
+        final response = await user.loginAnonymous();
+        if (!response.success) {
+          throw 'Failed to connect to server: ${response.error?.message}';
         }
-
-        if (!isValid) {
-          throw 'Invalid Employee ID or Password';
+      } else {
+        // Verify current session is valid
+        final response = await currentUser.getUpdatedUser();
+        if (!response.success && response.error?.code == 209) {
+          // Session invalid, logout and re-login
+          await currentUser.logout();
+          final user = ParseUser(null, null, null);
+          final loginResponse = await user.loginAnonymous();
+          if (!loginResponse.success) {
+            throw 'Failed to refresh session: ${loginResponse.error?.message}';
+          }
         }
+      }
 
-        // Set mock token
-        _token = 'mock_token_${DateTime.now().millisecondsSinceEpoch}';
+      // Generate a mock token
+      _token = 'parse_token_${DateTime.now().millisecondsSinceEpoch}';
 
-        // Set mock profile data directly
-        final mockData = _getMockUserData(employeeId);
+      // Fetch or create profile from Parse
+      await fetchProfile(employeeId);
+
+      if (_userProfile == null) {
+        await _createProfile(employeeId);
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Fetch user profile from Parse
+  Future<void> fetchProfile(String employeeId) async {
+    try {
+      final query = QueryBuilder<ParseObject>(ParseObject('Users'))
+        ..whereEqualTo('employee_id', employeeId);
+
+      final response = await query.query();
+
+      if (response.success &&
+          response.results != null &&
+          response.results!.isNotEmpty) {
+        final userObject = response.results!.first as ParseObject;
+        _userProfile = UserModel(
+          employeeId: userObject.get<String>('employee_id') ?? '',
+          name: userObject.get<String>('name') ?? '',
+          designation: userObject.get<String>('designation') ?? '',
+          role: userObject.get<String>('role') ?? 'Employee',
+          department: userObject.get<String>('department') ?? '',
+          location: userObject.get<String>('location') ?? '',
+          profileImage: userObject.get<String>('profile_image') ?? '',
+          personalDetails: PersonalDetails.fromJson(
+            Map<String, dynamic>.from(
+              userObject.get<Map>('personal_details') ?? {},
+            ),
+          ),
+        );
+        _loginUser = LoginUser(
+          id: _userProfile!.employeeId,
+          name: _userProfile!.name,
+          role: _userProfile!.role,
+        );
+      }
+    } catch (e) {
+      debugPrint('Profile fetch error: $e');
+    }
+  }
+
+  // Create profile in Parse if not exists
+  Future<void> _createProfile(String employeeId) async {
+    final mockData = _getMockUserData(employeeId);
+
+    try {
+      final userObject = ParseObject('Users')
+        ..set('employee_id', mockData['employee_id'])
+        ..set('name', mockData['name'])
+        ..set('designation', mockData['designation'])
+        ..set('role', mockData['role'])
+        ..set('department', mockData['department'])
+        ..set('location', mockData['location'])
+        ..set('profile_image', mockData['profile_image'])
+        ..set('personal_details', mockData['personal_details']);
+
+      // Set ACL for public access to profile
+      final acl = ParseACL();
+      acl.setPublicReadAccess(allowed: true);
+      acl.setPublicWriteAccess(allowed: true);
+      userObject.setACL(acl);
+
+      final response = await userObject.save();
+
+      if (response.success) {
         _userProfile = UserModel.fromJson(mockData);
         _loginUser = LoginUser(
           id: _userProfile!.employeeId,
           name: _userProfile!.name,
           role: _userProfile!.role,
         );
-
-        _isLoading = false;
-        notifyListeners();
-        return true;
       }
-
-      // Map employeeId to email for Firebase Auth
-      final email = "${employeeId.trim().toLowerCase()}@employee.com";
-
-      UserCredential userCredential;
-      try {
-        userCredential = await _auth.signInWithEmailAndPassword(
-          email: email,
-          password: password,
-        );
-      } on FirebaseAuthException catch (e) {
-        if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
-          // For demo purposes, auto-create the two main users if they don't exist
-          if ((employeeId == 'L3T2077' && password == 'password123') ||
-              (employeeId == 'L3T2088' && password == 'password456')) {
-            userCredential = await _auth.createUserWithEmailAndPassword(
-              email: email,
-              password: password,
-            );
-            // Initialize their profile in Firestore
-            await _initializeMockProfile(employeeId, userCredential.user!.uid);
-          } else {
-            throw 'Invalid Employee ID or Password';
-          }
-        } else {
-          rethrow;
-        }
-      }
-
-      _token = await userCredential.user?.getIdToken();
-
-      // Fetch profile to populate loginUser and userProfile
-      await fetchProfile();
-
-      _isLoading = false;
-      notifyListeners();
-      return true;
     } catch (e) {
-      _errorMessage = e.toString().replaceFirst('Exception: ', '');
-      _isLoading = false;
-      notifyListeners();
-      return false;
+      debugPrint('Create profile error: $e');
     }
   }
 
@@ -138,55 +181,8 @@ class AuthProvider extends ChangeNotifier {
     };
   }
 
-  // Initialize a new profile for mock users
-  Future<void> _initializeMockProfile(String employeeId, String uid) async {
-    final userData = _getMockUserData(employeeId);
-    await _firestore.collection('users').doc(uid).set(userData);
-  }
-
-  // Fetch user profile from Firestore
-  Future<void> fetchProfile() async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-
-    try {
-      if (_useMock) {
-        // In mock mode, we assume the user is L3T2077 for demonstration if not set
-        // Or if we have a way to persist the ID between restarts, we'd use that.
-        // For now, let's default to Kaniz Fatima (L3T2077) if _userProfile is null
-
-        if (_userProfile == null) {
-          final mockData = _getMockUserData('L3T2077');
-          _userProfile = UserModel.fromJson(mockData);
-          _loginUser = LoginUser(
-            id: _userProfile!.employeeId,
-            name: _userProfile!.name,
-            role: _userProfile!.role,
-          );
-          notifyListeners();
-        }
-        return;
-      }
-
-      final doc = await _firestore.collection('users').doc(user.uid).get();
-      if (doc.exists) {
-        final data = doc.data()!;
-        _userProfile = UserModel.fromJson(data);
-        _loginUser = LoginUser(
-          id: _userProfile!.employeeId,
-          name: _userProfile!.name,
-          role: data['role'] ?? _userProfile!.designation,
-        );
-        notifyListeners();
-      }
-    } catch (e) {
-      debugPrint('Profile fetch error: $e');
-    }
-  }
-
-  // Logout from Firebase
+  // Logout
   Future<void> logout() async {
-    await _auth.signOut();
     _token = null;
     _loginUser = null;
     _userProfile = null;

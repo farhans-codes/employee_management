@@ -34,9 +34,17 @@ class _HomePageState extends State<HomePage> {
   void _fetchTasks() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+    final attendanceProvider = Provider.of<AttendanceProvider>(
+      context,
+      listen: false,
+    );
 
-    if (authProvider.isLoggedIn) {
+    if (authProvider.isLoggedIn && authProvider.userProfile != null) {
+      final employeeId = authProvider.userProfile!.employeeId;
+      taskProvider.setEmployeeId(employeeId);
+      attendanceProvider.setEmployeeId(employeeId);
       taskProvider.fetchTasks();
+      attendanceProvider.fetchAttendance();
     }
   }
 
