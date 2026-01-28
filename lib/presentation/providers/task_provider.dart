@@ -9,6 +9,9 @@ class TaskProvider extends ChangeNotifier {
   String? _errorMessage;
   String? _currentEmployeeId;
 
+  // Pagination constants
+  static const int _defaultPageSize = 20;
+
   List<TaskModel> get tasks => _tasks;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -17,9 +20,13 @@ class TaskProvider extends ChangeNotifier {
     _currentEmployeeId = employeeId;
   }
 
-  // Fetch tasks from Parse
-  Future<void> fetchTasks({int page = 1, int limit = 10}) async {
-    if (_currentEmployeeId == null) return;
+  // Fetch tasks from Parse with pagination support
+  Future<void> fetchTasks({int page = 1, int limit = _defaultPageSize}) async {
+    if (_currentEmployeeId == null) {
+      _errorMessage = 'Employee ID not set';
+      notifyListeners();
+      return;
+    }
 
     _isLoading = true;
     _errorMessage = null;
@@ -28,7 +35,9 @@ class TaskProvider extends ChangeNotifier {
     try {
       final query = QueryBuilder<ParseObject>(ParseObject('Tasks'))
         ..whereEqualTo('employee_id', _currentEmployeeId!)
-        ..orderByDescending('createdAt'); // Most recent tasks first
+        ..orderByDescending('createdAt')
+        ..setLimit(limit)
+        ..setAmountToSkip((page - 1) * limit);
 
       final response = await query.query();
 
@@ -36,10 +45,7 @@ class TaskProvider extends ChangeNotifier {
         _tasks = response.results!.map((obj) {
           final task = obj as ParseObject;
           return TaskModel(
-            id:
-                int.tryParse(task.objectId ?? '0') ??
-                task.get<int>('task_id') ??
-                0,
+            id: task.get<int>('task_id') ?? 0,
             dayName: task.get<String>('day_name') ?? '',
             date: task.get<String>('date') ?? '',
             timeSlot: task.get<String>('time_slot') ?? '',
@@ -49,12 +55,20 @@ class TaskProvider extends ChangeNotifier {
         }).toList();
       }
     } catch (e) {
-      _errorMessage = 'Error: ${e.toString()}';
+      _errorMessage = 'Failed to load tasks: ${e.toString()}';
       debugPrint('Fetch tasks error: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
+  }
 
-    _isLoading = false;
-    notifyListeners();
+  // Helper to set public ACL
+  void _setPublicACL(ParseObject object) {
+    final acl = ParseACL()
+      ..setPublicReadAccess(allowed: true)
+      ..setPublicWriteAccess(allowed: true);
+    object.setACL(acl);
   }
 
   // Create task in Parse
@@ -78,22 +92,18 @@ class TaskProvider extends ChangeNotifier {
         ..set('status', task.status)
         ..set('description', task.description);
 
-      // Set ACL for public access (since we are handling auth manually)
-      final acl = ParseACL();
-      acl.setPublicReadAccess(allowed: true);
-      acl.setPublicWriteAccess(allowed: true);
-      taskObject.setACL(acl);
+      _setPublicACL(taskObject);
 
       final response = await taskObject.save();
 
       if (response.success) {
-        await fetchTasks(); // Refresh list
+        await fetchTasks();
         return true;
       }
       return false;
     } catch (e) {
       debugPrint('Create task error: $e');
-      _errorMessage = 'Error: ${e.toString()}';
+      _errorMessage = 'Failed to create task: ${e.toString()}';
       notifyListeners();
       return false;
     }
@@ -105,10 +115,12 @@ class TaskProvider extends ChangeNotifier {
     String? status,
     String? description,
   }) async {
+    if (_currentEmployeeId == null) return false;
+
     try {
-      // Find the task by task_id or objectId
       final query = QueryBuilder<ParseObject>(ParseObject('Tasks'))
-        ..whereEqualTo('task_id', taskId);
+        ..whereEqualTo('task_id', taskId)
+        ..setLimit(1);
 
       final response = await query.query();
 
@@ -130,15 +142,15 @@ class TaskProvider extends ChangeNotifier {
               status: status ?? _tasks[index].status,
               description: description ?? _tasks[index].description,
             );
-            notifyListeners();
           }
+          notifyListeners();
           return true;
         }
       }
       return false;
     } catch (e) {
       debugPrint('Update task error: $e');
-      _errorMessage = 'Error: ${e.toString()}';
+      _errorMessage = 'Failed to update task: ${e.toString()}';
       notifyListeners();
       return false;
     }
@@ -146,9 +158,12 @@ class TaskProvider extends ChangeNotifier {
 
   // Delete task from Parse
   Future<bool> deleteTask(int taskId) async {
+    if (_currentEmployeeId == null) return false;
+
     try {
       final query = QueryBuilder<ParseObject>(ParseObject('Tasks'))
-        ..whereEqualTo('task_id', taskId);
+        ..whereEqualTo('task_id', taskId)
+        ..setLimit(1);
 
       final response = await query.query();
 
@@ -166,7 +181,7 @@ class TaskProvider extends ChangeNotifier {
       }
       return false;
     } catch (e) {
-      _errorMessage = 'Delete error: ${e.toString()}';
+      _errorMessage = 'Failed to delete task: ${e.toString()}';
       debugPrint('Delete task error: $e');
       notifyListeners();
       return false;
@@ -174,8 +189,15 @@ class TaskProvider extends ChangeNotifier {
   }
 
   void clearSession() {
-    _tasks = [];
+    _tasks.clear();
     _currentEmployeeId = null;
+    _errorMessage = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _tasks.clear();
+    super.dispose();
   }
 }

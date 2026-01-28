@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
@@ -17,7 +18,7 @@ void main() async {
     Back4AppConfig.serverUrl,
     clientKey: Back4AppConfig.clientKey,
     autoSendSessionId: true,
-    debug: true,
+    debug: kDebugMode, // Only enable debug in development
   );
 
   runApp(const MyApp());

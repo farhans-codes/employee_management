@@ -11,9 +11,18 @@ class AuthProvider extends ChangeNotifier {
   String? _errorMessage;
   bool _isInitialized = false;
 
+  // Cached SharedPreferences instance
+  SharedPreferences? _prefs;
+
   // SharedPreferences keys
   static const String _keyEmployeeId = 'employee_id';
   static const String _keyToken = 'auth_token';
+
+  // Get cached SharedPreferences instance
+  Future<SharedPreferences> get _sharedPrefs async {
+    _prefs ??= await SharedPreferences.getInstance();
+    return _prefs!;
+  }
 
   // Getters
   String? get token => _token;
@@ -27,10 +36,9 @@ class AuthProvider extends ChangeNotifier {
   // Initialize auth state - check for existing session
   Future<bool> init() async {
     _isLoading = true;
-    notifyListeners();
 
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _sharedPrefs;
       final savedEmployeeId = prefs.getString(_keyEmployeeId);
       final savedToken = prefs.getString(_keyToken);
 
@@ -39,11 +47,7 @@ class AuthProvider extends ChangeNotifier {
         _token = savedToken;
 
         // Re-authenticate with Parse
-        ParseUser? currentUser = await ParseUser.currentUser() as ParseUser?;
-        if (currentUser == null) {
-          final user = ParseUser(null, null, null);
-          await user.loginAnonymous();
-        }
+        await _ensureParseSession();
 
         // Fetch profile
         await fetchProfile(savedEmployeeId);
@@ -69,16 +73,33 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // Ensure Parse session is active
+  Future<void> _ensureParseSession() async {
+    ParseUser? currentUser = await ParseUser.currentUser() as ParseUser?;
+    if (currentUser == null) {
+      final user = ParseUser(null, null, null);
+      await user.loginAnonymous();
+    } else {
+      // Verify current session is valid
+      final response = await currentUser.getUpdatedUser();
+      if (!response.success && response.error?.code == 209) {
+        await currentUser.logout();
+        final user = ParseUser(null, null, null);
+        await user.loginAnonymous();
+      }
+    }
+  }
+
   // Save session to SharedPreferences
   Future<void> _saveSession(String employeeId) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _sharedPrefs;
     await prefs.setString(_keyEmployeeId, employeeId);
     await prefs.setString(_keyToken, _token!);
   }
 
   // Clear session from SharedPreferences
   Future<void> _clearSession() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _sharedPrefs;
     await prefs.remove(_keyEmployeeId);
     await prefs.remove(_keyToken);
   }
@@ -91,40 +112,15 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       // Hardcoded credentials for demo
-      bool isValid = false;
-      if (employeeId == 'L3T2077' && password == 'password123') {
-        isValid = true;
-      } else if (employeeId == 'L3T2088' && password == 'password456') {
-        isValid = true;
-      }
+      final isValid = (employeeId == 'L3T2077' && password == 'password123') ||
+          (employeeId == 'L3T2088' && password == 'password456');
 
       if (!isValid) {
         throw 'Invalid Employee ID or Password';
       }
 
       // Authenticate with Parse (Anonymous login)
-      ParseUser? currentUser = await ParseUser.currentUser() as ParseUser?;
-
-      // If no user or previous session is invalid (checked via simple query or just blindly login)
-      if (currentUser == null) {
-        final user = ParseUser(null, null, null);
-        final response = await user.loginAnonymous();
-        if (!response.success) {
-          throw 'Failed to connect to server: ${response.error?.message}';
-        }
-      } else {
-        // Verify current session is valid
-        final response = await currentUser.getUpdatedUser();
-        if (!response.success && response.error?.code == 209) {
-          // Session invalid, logout and re-login
-          await currentUser.logout();
-          final user = ParseUser(null, null, null);
-          final loginResponse = await user.loginAnonymous();
-          if (!loginResponse.success) {
-            throw 'Failed to refresh session: ${loginResponse.error?.message}';
-          }
-        }
-      }
+      await _ensureParseSession();
 
       // Generate a mock token
       _token = 'parse_token_${DateTime.now().millisecondsSinceEpoch}';
@@ -256,7 +252,15 @@ class AuthProvider extends ChangeNotifier {
   }
 
   void clearError() {
-    _errorMessage = null;
-    notifyListeners();
+    if (_errorMessage != null) {
+      _errorMessage = null;
+      notifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    _prefs = null;
+    super.dispose();
   }
 }

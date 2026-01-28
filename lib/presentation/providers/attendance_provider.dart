@@ -10,6 +10,9 @@ class AttendanceProvider extends ChangeNotifier {
   String? _errorMessage;
   String? _currentEmployeeId;
 
+  // Pagination constants
+  static const int _defaultLimit = 50;
+
   List<AttendanceModel> get attendances => _attendances;
   AttendanceMeta? get meta => _meta;
   bool get isLoading => _isLoading;
@@ -19,9 +22,21 @@ class AttendanceProvider extends ChangeNotifier {
     _currentEmployeeId = employeeId;
   }
 
+  // Helper to set public ACL
+  void _setPublicACL(ParseObject object) {
+    final acl = ParseACL()
+      ..setPublicReadAccess(allowed: true)
+      ..setPublicWriteAccess(allowed: true);
+    object.setACL(acl);
+  }
+
   // Fetch attendance from Parse
   Future<void> fetchAttendance({int? month, int? year}) async {
-    if (_currentEmployeeId == null) return;
+    if (_currentEmployeeId == null) {
+      _errorMessage = 'Employee ID not set';
+      notifyListeners();
+      return;
+    }
 
     _isLoading = true;
     _errorMessage = null;
@@ -30,7 +45,8 @@ class AttendanceProvider extends ChangeNotifier {
     try {
       final query = QueryBuilder<ParseObject>(ParseObject('Attendance'))
         ..whereEqualTo('employee_id', _currentEmployeeId!)
-        ..orderByDescending('createdAt'); // Most recent records first
+        ..orderByDescending('createdAt')
+        ..setLimit(_defaultLimit);
 
       final response = await query.query();
 
@@ -46,22 +62,25 @@ class AttendanceProvider extends ChangeNotifier {
             workType: att.get<String>('work_type') ?? '',
           );
         }).toList();
+
+        // Calculate meta based on fetched data
+        final now = DateTime.now();
+        final targetMonth = month ?? now.month;
+        final targetYear = year ?? now.year;
+
+        final presentCount =
+            _attendances.where((a) => a.status == 'Present').length;
+
+        _meta = AttendanceMeta(
+          month: DateFormat('MMMM').format(DateTime(targetYear, targetMonth)),
+          year: targetYear,
+          totalPresent: presentCount,
+          totalAbsent: 0,
+          totalHolidays: 0,
+        );
       }
-
-      // Calculate meta based on fetched data
-      final now = DateTime.now();
-      final targetMonth = month ?? now.month;
-      final targetYear = year ?? now.year;
-
-      _meta = AttendanceMeta(
-        month: DateFormat('MMMM').format(DateTime(targetYear, targetMonth)),
-        year: targetYear,
-        totalPresent: _attendances.where((a) => a.status == 'Present').length,
-        totalAbsent: 0,
-        totalHolidays: 0,
-      );
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = 'Failed to load attendance: ${e.toString()}';
       debugPrint('Fetch attendance error: $e');
     } finally {
       _isLoading = false;
@@ -88,16 +107,12 @@ class AttendanceProvider extends ChangeNotifier {
         ..set('status', 'Present')
         ..set('work_type', workType);
 
-      // Set ACL for public access
-      final acl = ParseACL();
-      acl.setPublicReadAccess(allowed: true);
-      acl.setPublicWriteAccess(allowed: true);
-      attendanceObject.setACL(acl);
+      _setPublicACL(attendanceObject);
 
       final response = await attendanceObject.save();
 
       if (response.success) {
-        fetchAttendance();
+        await fetchAttendance();
         return true;
       }
       return false;
@@ -119,7 +134,8 @@ class AttendanceProvider extends ChangeNotifier {
       final query = QueryBuilder<ParseObject>(ParseObject('Attendance'))
         ..whereEqualTo('employee_id', _currentEmployeeId!)
         ..whereEqualTo('date', dateStr)
-        ..orderByDescending('createdAt'); // সবচেয়ে recent check-in আগে আসবে
+        ..orderByDescending('createdAt')
+        ..setLimit(1); // Only need the most recent check-in
 
       final response = await query.query();
 
@@ -131,7 +147,7 @@ class AttendanceProvider extends ChangeNotifier {
 
         final saveResponse = await attendanceObject.save();
         if (saveResponse.success) {
-          fetchAttendance();
+          await fetchAttendance();
           return true;
         }
       }
@@ -143,9 +159,16 @@ class AttendanceProvider extends ChangeNotifier {
   }
 
   void clearSession() {
-    _attendances = [];
+    _attendances.clear();
     _meta = null;
     _currentEmployeeId = null;
+    _errorMessage = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _attendances.clear();
+    super.dispose();
   }
 }

@@ -72,9 +72,11 @@ class _TaskListPageState extends State<TaskListPage> {
           return ListView.builder(
             padding: const EdgeInsets.all(20),
             itemCount: taskProvider.tasks.length,
+            cacheExtent: 300, // Cache 300 pixels of items outside viewport
             itemBuilder: (context, index) {
               final task = taskProvider.tasks[index];
               return TaskListCard(
+                key: ValueKey(task.id), // Unique key for each item
                 taskId: task.id,
                 day: task.dayName,
                 time: task.timeSlot,

@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
 import 'dart:ui';
+
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/task_provider.dart';
@@ -11,6 +12,44 @@ import '../../widgets/profile_image.dart';
 import '../login/login_page.dart';
 import '../profile/profile_page.dart';
 import '../task_list/task_list_page.dart';
+import '../../../data/models/task_model.dart';
+
+/// Data class for optimized selector rebuilds
+class _HomePageData {
+  final String displayName;
+  final String displayId;
+  final String? profileImage;
+  final List<TaskModel> tasks;
+  final bool isLoading;
+
+  const _HomePageData({
+    required this.displayName,
+    required this.displayId,
+    this.profileImage,
+    required this.tasks,
+    required this.isLoading,
+  });
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is _HomePageData &&
+        other.displayName == displayName &&
+        other.displayId == displayId &&
+        other.profileImage == profileImage &&
+        other.tasks.length == tasks.length &&
+        other.isLoading == isLoading;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        displayName,
+        displayId,
+        profileImage,
+        tasks.length,
+        isLoading,
+      );
+}
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -79,15 +118,16 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<AuthProvider, TaskProvider>(
-      builder: (context, authProvider, taskProvider, child) {
-        final user = authProvider.loginUser;
-        final profile = authProvider.userProfile;
-
-        // Use profile data if available, otherwise use login user data
-        final displayName = profile?.name ?? user?.name ?? 'User';
-        final displayId = profile?.employeeId ?? user?.id ?? 'ID';
-
+    // Use Selector2 for optimized rebuilds - only rebuild when specific data changes
+    return Selector2<AuthProvider, TaskProvider, _HomePageData>(
+      selector: (_, auth, task) => _HomePageData(
+        displayName: auth.userProfile?.name ?? auth.loginUser?.name ?? 'User',
+        displayId: auth.userProfile?.employeeId ?? auth.loginUser?.id ?? 'ID',
+        profileImage: auth.userProfile?.profileImage,
+        tasks: task.tasks,
+        isLoading: task.isLoading,
+      ),
+      builder: (context, data, child) {
         return Scaffold(
           backgroundColor: Colors.grey[100],
           appBar: AppBar(
@@ -104,7 +144,7 @@ class _HomePageState extends State<HomePage> {
               child: Row(
                 children: [
                   CustomProfileImage(
-                    imageUrl: profile?.profileImage,
+                    imageUrl: data.profileImage,
                     size: 55,
                     iconSize: 32,
                   ),
@@ -115,7 +155,7 @@ class _HomePageState extends State<HomePage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          displayName,
+                          data.displayName,
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
@@ -124,7 +164,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          displayId,
+                          data.displayId,
                           style: const TextStyle(
                             fontSize: 14,
                             color: Colors.white,
@@ -159,17 +199,17 @@ class _HomePageState extends State<HomePage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
+                      const Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            child: const Icon(
+                          Padding(
+                            padding: EdgeInsets.all(10),
+                            child: Icon(
                               Icons.fact_check,
                               size: 30,
                               color: Color(0xFF0d4f9d),
                             ),
                           ),
-                          const Text(
+                          Text(
                             'Daily Task List',
                             style: TextStyle(
                               fontSize: 20,
@@ -206,14 +246,14 @@ class _HomePageState extends State<HomePage> {
                   ),
 
                   // Task Cards - from API or loading state
-                  if (taskProvider.isLoading && taskProvider.tasks.isEmpty)
+                  if (data.isLoading && data.tasks.isEmpty)
                     const Center(
                       child: Padding(
                         padding: EdgeInsets.all(32),
                         child: CircularProgressIndicator(),
                       ),
                     )
-                  else if (taskProvider.tasks.isEmpty)
+                  else if (data.tasks.isEmpty)
                     const Center(
                       child: Padding(
                         padding: EdgeInsets.all(32),
@@ -221,9 +261,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     )
                   else
-                    ...taskProvider.tasks
-                        .take(3)
-                        .map(
+                    ...data.tasks.take(3).map(
                           (task) => TaskCard(
                             key: ValueKey(task.id),
                             taskId: task.id,
@@ -253,7 +291,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
-          bottomNavigationBar: taskProvider.tasks.isNotEmpty
+          bottomNavigationBar: data.tasks.isNotEmpty
               ? ClipRect(
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -286,9 +324,9 @@ class _HomePageState extends State<HomePage> {
                               ),
                             );
                           },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            child: const Row(
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(

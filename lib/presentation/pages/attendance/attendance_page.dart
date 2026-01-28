@@ -175,15 +175,19 @@ class _AttendancePageState extends State<AttendancePage> {
                                   ),
                                   itemCount:
                                       attendanceProvider.attendances.length,
+                                  cacheExtent: 200, // Cache items for smooth scroll
                                   itemBuilder: (context, index) {
                                     final log =
                                         attendanceProvider.attendances[index];
-                                    return _buildTableRow(
-                                      log.date,
-                                      log.dayName,
-                                      log.inTime,
-                                      log.outTime,
-                                      log.workType,
+                                    return KeyedSubtree(
+                                      key: ValueKey('${log.date}_$index'),
+                                      child: _buildTableRow(
+                                        log.date,
+                                        log.dayName,
+                                        log.inTime,
+                                        log.outTime,
+                                        log.workType,
+                                      ),
                                     );
                                   },
                                 ),
