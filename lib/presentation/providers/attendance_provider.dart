@@ -118,7 +118,8 @@ class AttendanceProvider extends ChangeNotifier {
     try {
       final query = QueryBuilder<ParseObject>(ParseObject('Attendance'))
         ..whereEqualTo('employee_id', _currentEmployeeId!)
-        ..whereEqualTo('date', dateStr);
+        ..whereEqualTo('date', dateStr)
+        ..orderByDescending('createdAt'); // সবচেয়ে recent check-in আগে আসবে
 
       final response = await query.query();
 
