@@ -5,12 +5,15 @@ import '../../data/models/attendance_model.dart';
 
 class AttendanceProvider extends ChangeNotifier {
   List<AttendanceModel> _attendances = [];
+  List<AttendanceModel> _recentAttendances =
+      []; // Home page এর জন্য recent logs
   AttendanceMeta? _meta;
   bool _isLoading = false;
   String? _errorMessage;
   String? _currentEmployeeId;
 
   List<AttendanceModel> get attendances => _attendances;
+  List<AttendanceModel> get recentAttendances => _recentAttendances;
   AttendanceMeta? get meta => _meta;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -19,7 +22,42 @@ class AttendanceProvider extends ChangeNotifier {
     _currentEmployeeId = employeeId;
   }
 
-  // Fetch attendance from Parse
+  // Fetch recent attendance for Home page (no month filter)
+  Future<void> fetchRecentAttendance({int limit = 5}) async {
+    if (_currentEmployeeId == null) return;
+
+    try {
+      final query = QueryBuilder<ParseObject>(ParseObject('Attendance'))
+        ..whereEqualTo('employee_id', _currentEmployeeId!)
+        ..orderByDescending(
+          'createdAt',
+        ) // System timestamp - সবচেয়ে recent আগে আসবে
+        ..setLimit(limit);
+
+      final response = await query.query();
+
+      if (response.success && response.results != null) {
+        _recentAttendances = response.results!.map((obj) {
+          final att = obj as ParseObject;
+          return AttendanceModel(
+            date: att.get<String>('date') ?? '',
+            dayName: att.get<String>('day_name') ?? '',
+            inTime: att.get<String>('in_time') ?? '',
+            outTime: att.get<String>('out_time') ?? '-',
+            status: att.get<String>('status') ?? '',
+            workType: att.get<String>('work_type') ?? '',
+          );
+        }).toList();
+      } else {
+        _recentAttendances = [];
+      }
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Fetch recent attendance error: $e');
+    }
+  }
+
+  // Fetch attendance from Parse (filtered by month)
   Future<void> fetchAttendance({int? month, int? year}) async {
     if (_currentEmployeeId == null) return;
 
@@ -40,7 +78,9 @@ class AttendanceProvider extends ChangeNotifier {
       final query = QueryBuilder<ParseObject>(ParseObject('Attendance'))
         ..whereEqualTo('employee_id', _currentEmployeeId!)
         ..whereStartsWith('date', datePrefix)
-        ..orderByDescending('date'); // Sort by date descending
+        ..orderByDescending(
+          'createdAt',
+        ); // System timestamp - সবচেয়ে recent আগে আসবে
 
       final response = await query.query();
 
@@ -105,7 +145,7 @@ class AttendanceProvider extends ChangeNotifier {
       final response = await attendanceObject.save();
 
       if (response.success) {
-        fetchAttendance();
+        fetchRecentAttendance(); // Home page refresh
         return true;
       }
       return false;
@@ -139,7 +179,7 @@ class AttendanceProvider extends ChangeNotifier {
 
         final saveResponse = await attendanceObject.save();
         if (saveResponse.success) {
-          fetchAttendance();
+          fetchRecentAttendance(); // Home page refresh
           return true;
         }
       }
@@ -152,6 +192,7 @@ class AttendanceProvider extends ChangeNotifier {
 
   void clearSession() {
     _attendances = [];
+    _recentAttendances = [];
     _meta = null;
     _currentEmployeeId = null;
     notifyListeners();

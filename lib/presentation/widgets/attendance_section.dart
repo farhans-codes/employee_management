@@ -29,7 +29,7 @@ class _AttendanceSectionState extends State<AttendanceSection> {
       listen: false,
     );
     if (authProvider.isLoggedIn) {
-      attendanceProvider.fetchAttendance();
+      attendanceProvider.fetchRecentAttendance();
     }
   }
 
@@ -151,14 +151,14 @@ class _AttendanceSectionState extends State<AttendanceSection> {
                   const SizedBox(height: 8),
 
                   if (attendanceProvider.isLoading &&
-                      attendanceProvider.attendances.isEmpty)
+                      attendanceProvider.recentAttendances.isEmpty)
                     const Center(
                       child: Padding(
                         padding: EdgeInsets.all(20.0),
                         child: CircularProgressIndicator(),
                       ),
                     )
-                  else if (attendanceProvider.attendances.isEmpty)
+                  else if (attendanceProvider.recentAttendances.isEmpty)
                     const Center(
                       child: Padding(
                         padding: EdgeInsets.all(20.0),
@@ -166,8 +166,7 @@ class _AttendanceSectionState extends State<AttendanceSection> {
                       ),
                     )
                   else
-                    ...attendanceProvider.attendances
-                        .take(5)
+                    ...attendanceProvider.recentAttendances
                         .map(
                           (log) => _buildTableRow(
                             log.date,

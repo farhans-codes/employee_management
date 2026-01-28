@@ -44,7 +44,7 @@ class _HomePageState extends State<HomePage> {
       taskProvider.setEmployeeId(employeeId);
       attendanceProvider.setEmployeeId(employeeId);
       taskProvider.fetchTasks();
-      attendanceProvider.fetchAttendance();
+      attendanceProvider.fetchRecentAttendance();
     }
   }
 
