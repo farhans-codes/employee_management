@@ -30,7 +30,7 @@ class AttendanceProvider extends ChangeNotifier {
     try {
       final query = QueryBuilder<ParseObject>(ParseObject('Attendance'))
         ..whereEqualTo('employee_id', _currentEmployeeId!)
-        ..orderByDescending('date');
+        ..orderByDescending('createdAt'); // Most recent records first
 
       final response = await query.query();
 

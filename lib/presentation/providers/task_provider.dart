@@ -28,8 +28,7 @@ class TaskProvider extends ChangeNotifier {
     try {
       final query = QueryBuilder<ParseObject>(ParseObject('Tasks'))
         ..whereEqualTo('employee_id', _currentEmployeeId!)
-        ..orderByDescending('date')
-        ..orderByDescending('createdAt');
+        ..orderByDescending('createdAt'); // Most recent tasks first
 
       final response = await query.query();
 
