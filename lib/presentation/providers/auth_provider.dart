@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/models/user_model.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -8,6 +9,11 @@ class AuthProvider extends ChangeNotifier {
   UserModel? _userProfile;
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isInitialized = false;
+
+  // SharedPreferences keys
+  static const String _keyEmployeeId = 'employee_id';
+  static const String _keyToken = 'auth_token';
 
   // Getters
   String? get token => _token;
@@ -16,10 +22,65 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isLoggedIn => _token != null;
+  bool get isInitialized => _isInitialized;
 
-  // Initialize auth state
-  Future<void> init() async {
-    // Check if user session exists
+  // Initialize auth state - check for existing session
+  Future<bool> init() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedEmployeeId = prefs.getString(_keyEmployeeId);
+      final savedToken = prefs.getString(_keyToken);
+
+      if (savedEmployeeId != null && savedToken != null) {
+        // Restore session
+        _token = savedToken;
+
+        // Re-authenticate with Parse
+        ParseUser? currentUser = await ParseUser.currentUser() as ParseUser?;
+        if (currentUser == null) {
+          final user = ParseUser(null, null, null);
+          await user.loginAnonymous();
+        }
+
+        // Fetch profile
+        await fetchProfile(savedEmployeeId);
+
+        if (_userProfile != null) {
+          _isInitialized = true;
+          _isLoading = false;
+          notifyListeners();
+          return true; // Session restored successfully
+        }
+      }
+
+      _isInitialized = true;
+      _isLoading = false;
+      notifyListeners();
+      return false; // No saved session
+    } catch (e) {
+      debugPrint('Session restore error: $e');
+      _isInitialized = true;
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Save session to SharedPreferences
+  Future<void> _saveSession(String employeeId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyEmployeeId, employeeId);
+    await prefs.setString(_keyToken, _token!);
+  }
+
+  // Clear session from SharedPreferences
+  Future<void> _clearSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyEmployeeId);
+    await prefs.remove(_keyToken);
   }
 
   // Login (Simulated - will use Parse Objects for profile)
@@ -74,6 +135,9 @@ class AuthProvider extends ChangeNotifier {
       if (_userProfile == null) {
         await _createProfile(employeeId);
       }
+
+      // Save session for persistence
+      await _saveSession(employeeId);
 
       _isLoading = false;
       notifyListeners();
@@ -183,6 +247,7 @@ class AuthProvider extends ChangeNotifier {
 
   // Logout
   Future<void> logout() async {
+    await _clearSession();
     _token = null;
     _loginUser = null;
     _userProfile = null;

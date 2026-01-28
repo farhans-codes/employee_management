@@ -4,6 +4,7 @@ import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import 'core/config/back4app_config.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/pages/login/login_page.dart';
+import 'presentation/pages/home/home_page.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/task_provider.dart';
 import 'presentation/providers/attendance_provider.dart';
@@ -37,8 +38,52 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'Employee Management System',
         theme: AppTheme.lightTheme,
-        home: const LoginPage(),
+        home: const AuthWrapper(),
       ),
+    );
+  }
+}
+
+/// Wrapper widget that checks for existing session
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  @override
+  void initState() {
+    super.initState();
+    _checkSession();
+  }
+
+  Future<void> _checkSession() async {
+    final authProvider = context.read<AuthProvider>();
+    await authProvider.init();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, _) {
+        // Show loading while checking session
+        if (!authProvider.isInitialized) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        // Navigate based on login status
+        if (authProvider.isLoggedIn) {
+          return const HomePage();
+        }
+
+        return const LoginPage();
+      },
     );
   }
 }
