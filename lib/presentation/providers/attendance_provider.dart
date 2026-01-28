@@ -28,9 +28,19 @@ class AttendanceProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final now = DateTime.now();
+      final targetMonth = month ?? now.month;
+      final targetYear = year ?? now.year;
+
+      // Create date prefix for the selected month
+      // Date format in database is 'yyyy-MM-dd'
+      final monthStr = targetMonth.toString().padLeft(2, '0');
+      final datePrefix = '$targetYear-$monthStr'; // e.g., "2026-01"
+
       final query = QueryBuilder<ParseObject>(ParseObject('Attendance'))
         ..whereEqualTo('employee_id', _currentEmployeeId!)
-        ..orderByDescending('createdAt'); // Most recent records first
+        ..whereStartsWith('date', datePrefix)
+        ..orderByDescending('date'); // Sort by date descending
 
       final response = await query.query();
 
@@ -46,13 +56,11 @@ class AttendanceProvider extends ChangeNotifier {
             workType: att.get<String>('work_type') ?? '',
           );
         }).toList();
+      } else {
+        _attendances = [];
       }
 
       // Calculate meta based on fetched data
-      final now = DateTime.now();
-      final targetMonth = month ?? now.month;
-      final targetYear = year ?? now.year;
-
       _meta = AttendanceMeta(
         month: DateFormat('MMMM').format(DateTime(targetYear, targetMonth)),
         year: targetYear,
